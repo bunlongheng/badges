@@ -1,8 +1,12 @@
 import type { NextConfig } from "next";
 
 const isDev = process.env.NODE_ENV === "development";
-// React's dev tooling needs eval(); production CSP stays strict (no unsafe-eval).
-const scriptSrc = isDev ? "'self' 'unsafe-inline' 'unsafe-eval'" : "'self' 'unsafe-inline'";
+// heic-to decodes iPhone HEIC with a libheif WebAssembly module, which needs a
+// wasm CSP source. Prod uses the narrow 'wasm-unsafe-eval' (wasm only, not eval);
+// dev also needs plain 'unsafe-eval' for React's dev tooling.
+const scriptSrc = isDev
+  ? "'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval'"
+  : "'self' 'unsafe-inline' 'wasm-unsafe-eval'";
 
 const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
