@@ -21,7 +21,9 @@ const isHeic = (f: File) =>
 async function toDisplayableBlob(file: File): Promise<Blob> {
   if (!isHeic(file)) return file;
   try {
-    const { heicTo } = await import("heic-to");
+    // The /next build inlines the worker + libheif wasm (no CDN fetch), so it
+    // works under a strict CSP (no connect-src to a CDN needed).
+    const { heicTo } = await import("heic-to/next");
     return await heicTo({ blob: file, type: "image/jpeg", quality: 0.92 });
   } catch (err) {
     console.error("[badges] HEIC conversion failed:", err);

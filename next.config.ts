@@ -1,12 +1,11 @@
 import type { NextConfig } from "next";
 
-const isDev = process.env.NODE_ENV === "development";
-// heic-to decodes iPhone HEIC with a libheif WebAssembly module, which needs a
-// wasm CSP source. Prod uses the narrow 'wasm-unsafe-eval' (wasm only, not eval);
-// dev also needs plain 'unsafe-eval' for React's dev tooling.
-const scriptSrc = isDev
-  ? "'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval'"
-  : "'self' 'unsafe-inline' 'wasm-unsafe-eval'";
+// iPhone HEIC decoding runs the libheif (emscripten) module in a Web Worker,
+// whose bootstrap glue uses eval/new Function - so 'unsafe-eval' is required for
+// the core HEIC feature. This is a client-only tool with no secrets, auth, or
+// HTML-injection surface, so the trade is acceptable. React dev tooling also
+// needs it. 'wasm-unsafe-eval' is kept for browsers that honor the narrower one.
+const scriptSrc = "'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval'";
 
 const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
