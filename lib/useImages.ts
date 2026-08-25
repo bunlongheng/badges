@@ -9,10 +9,23 @@ export type BadgeImage = {
   /** focal point as object-position percentages (0-100), default centered */
   offsetX: number;
   offsetY: number;
+  /** content hash used to skip duplicate adds */
+  hash?: string;
 };
 
 let counter = 0;
 const nextId = () => `img-${Date.now().toString(36)}-${counter++}`;
+
+async function sha256(file: File): Promise<string | undefined> {
+  try {
+    const digest = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
+    return Array.from(new Uint8Array(digest))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+  } catch {
+    return undefined;
+  }
+}
 
 const isHeic = (f: File) =>
   /image\/hei(c|f)/i.test(f.type) || /\.hei(c|f)$/i.test(f.name);
@@ -35,6 +48,7 @@ export function useImages() {
   const [images, setImages] = useState<BadgeImage[]>([]);
   const [converting, setConverting] = useState(0);
   const urls = useRef<Set<string>>(new Set());
+  const hashes = useRef<Set<string>>(new Set());
 
   const add = useCallback(async (files: FileList | File[]) => {
     const list = Array.from(files).filter(
@@ -43,12 +57,19 @@ export function useImages() {
     if (list.length === 0) return;
     setConverting((n) => n + list.length);
     for (const f of list) {
+      const hash = await sha256(f);
+      // Skip exact duplicates (e.g. pasting the same image twice).
+      if (hash && hashes.current.has(hash)) {
+        setConverting((n) => n - 1);
+        continue;
+      }
+      if (hash) hashes.current.add(hash);
       const blob = await toDisplayableBlob(f);
       const url = URL.createObjectURL(blob);
       urls.current.add(url);
       setImages((prev) => [
         ...prev,
-        { id: nextId(), url, name: f.name || "pasted-image", offsetX: 50, offsetY: 50 },
+        { id: nextId(), url, name: f.name || "pasted-image", offsetX: 50, offsetY: 50, hash },
       ]);
       setConverting((n) => n - 1);
     }
@@ -60,6 +81,7 @@ export function useImages() {
       if (target) {
         URL.revokeObjectURL(target.url);
         urls.current.delete(target.url);
+        if (target.hash) hashes.current.delete(target.hash);
       }
       return prev.filter((i) => i.id !== id);
     });
@@ -86,6 +108,7 @@ export function useImages() {
     setImages((prev) => {
       prev.forEach((i) => URL.revokeObjectURL(i.url));
       urls.current.clear();
+      hashes.current.clear();
       return [];
     });
   }, []);
