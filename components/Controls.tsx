@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { BADGE_STYLES, FITS, SHAPES, SIZE_PRESETS, type Settings } from "@/lib/presets";
+import { BADGE_STYLES, SHAPES, SIZE_PRESETS, type Settings } from "@/lib/presets";
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
   return (
@@ -150,9 +150,6 @@ export function Controls({
 
       {/* Advanced - hidden on phone to keep the panel short */}
       <div className="hidden space-y-5 sm:block">
-        <Field label="Image fit">
-          <Segmented value={settings.fit} options={FITS} onChange={(v) => update("fit", v)} />
-        </Field>
         <Field label="Style">
           <Segmented value={settings.style} options={BADGE_STYLES} onChange={(v) => update("style", v)} />
         </Field>

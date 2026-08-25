@@ -97,6 +97,11 @@ export default function Home() {
     return () => clearTimeout(t);
   }, [notice, clearNotice]);
 
+  // Image fit is always cover now (control removed); migrate any old persisted value.
+  useEffect(() => {
+    if (settings.fit !== "cover") update("fit", "cover");
+  }, [settings.fit, update]);
+
   const layout = useMemo(() => computeLayout(settings), [settings]);
   // repeat-to-fill was removed; always flow images across pages (one per badge)
   const pages = useMemo(
