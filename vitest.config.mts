@@ -12,7 +12,7 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       include: ["lib/**", "components/**"],
-      exclude: ["lib/pdf.ts", "lib/brandMark.tsx"],
+      exclude: ["lib/pdf.ts"],
     },
   },
   resolve: {

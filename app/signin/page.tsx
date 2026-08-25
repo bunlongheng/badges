@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Logo } from "@/components/Logo";
+import Image from "next/image";
 
 export const metadata: Metadata = {
   title: "Sign in",
@@ -14,7 +14,7 @@ export default function SignIn() {
         <div className="w-full max-w-sm">
           <div className="rounded-3xl border border-zinc-200 bg-white p-8 shadow-xl shadow-zinc-200/50 dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-black/30">
             <div className="flex flex-col items-center text-center">
-              <Logo size={56} />
+              <Image src="/icon.png" alt="Badges" width={64} height={64} className="rounded-2xl" />
               <h1 className="mt-4 text-2xl font-bold tracking-tight">Welcome to Badges</h1>
               <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
                 A local-first studio for print-ready badge, button &amp; sticker

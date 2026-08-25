@@ -1,13 +1,13 @@
 import Link from "next/link";
+import Image from "next/image";
 import type { ReactNode } from "react";
-import { Logo } from "./Logo";
 
 export function Header({ actions }: { actions?: ReactNode }) {
   return (
     <header className="no-print sticky top-0 z-30 border-b border-zinc-200/80 bg-white/80 backdrop-blur">
       <div className="mx-auto flex h-14 max-w-[1800px] items-center justify-between gap-3 px-4 sm:px-6">
         <Link href="/" className="flex shrink-0 items-center gap-2.5">
-          <Logo size={28} />
+          <Image src="/icon.png" alt="Badges" width={30} height={30} className="rounded-lg" priority />
           <span className="text-lg font-semibold tracking-tight">Badges</span>
         </Link>
         {actions && <div className="ml-auto flex items-center gap-2">{actions}</div>}
