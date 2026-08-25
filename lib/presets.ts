@@ -13,21 +13,23 @@ export const PAPERS: Paper[] = [
   { id: "legal", label: 'Legal (8.5 x 14")', w: 8.5, h: 14 },
 ];
 
-export type SizePreset = { label: string; inches: number };
+export type SizePreset = { label: string; inches: number; cm: number; detail: string };
+
+const CM_PER_IN = 2.54;
+const cmToIn = (cm: number) => cm / CM_PER_IN;
+
+// The two real badge-press diameters.
+export const SIZE_SMALL_IN = cmToIn(4.75); // 1.870"
+export const SIZE_LARGE_IN = cmToIn(6.8); // 2.677"
 
 export const SIZE_PRESETS: SizePreset[] = [
-  { label: '1"', inches: 1 },
-  { label: '1.5"', inches: 1.5 },
-  { label: '2"', inches: 2 },
-  { label: '2.125" (button)', inches: 2.125 },
-  { label: '2.5"', inches: 2.5 },
-  { label: '3"', inches: 3 },
+  { label: "Small", inches: SIZE_SMALL_IN, cm: 4.75, detail: '4.75 cm · 1.87" diameter' },
+  { label: "Large", inches: SIZE_LARGE_IN, cm: 6.8, detail: '6.8 cm · 2.68" diameter' },
 ];
 
 export type Shape = "square" | "rounded" | "circle";
 export const SHAPES: { id: Shape; label: string }[] = [
   { id: "square", label: "Square" },
-  { id: "rounded", label: "Rounded" },
   { id: "circle", label: "Circle" },
 ];
 
@@ -59,15 +61,15 @@ export type Settings = {
 
 export const DEFAULT_SETTINGS: Settings = {
   paperId: "letter",
-  sizeIn: 3,
-  columns: 2,
-  gapIn: 0.15,
-  marginIn: 0.25,
-  shape: "rounded",
-  fit: "contain",
+  sizeIn: SIZE_LARGE_IN,
+  columns: 3, // unused - layout auto-maximizes
+  gapIn: 0, // touch, so we fit the most badges per page
+  marginIn: 0.25, // print-safe margin
+  shape: "circle",
+  fit: "cover",
   style: "plain",
   repeat: false,
-  cutGuides: false,
+  cutGuides: true,
 };
 
 export function getPaper(id: string): Paper {

@@ -16,7 +16,8 @@ describe("presets", () => {
     expect(SIZE_PRESETS.some((s) => s.inches === DEFAULT_SETTINGS.sizeIn)).toBe(true);
   });
 
-  it("includes the classic 2.125 button size", () => {
-    expect(SIZE_PRESETS.some((s) => s.inches === 2.125)).toBe(true);
+  it("has exactly two badge sizes: the real 4.75cm and 6.8cm diameters", () => {
+    expect(SIZE_PRESETS).toHaveLength(2);
+    expect(SIZE_PRESETS.map((s) => s.cm)).toEqual([4.75, 6.8]);
   });
 });

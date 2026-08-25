@@ -32,8 +32,8 @@ export function computeLayout(settings: Settings): SheetLayout {
   const usableW = paper.w - settings.marginIn * 2;
   const usableH = paper.h - settings.marginIn * 2;
 
-  const maxCols = fitCount(usableW, settings.sizeIn, settings.gapIn);
-  const columns = Math.max(1, Math.min(settings.columns, Math.max(1, maxCols)));
+  // Always maximize: fit as many badges as physically possible in the safe zone.
+  const columns = Math.max(1, fitCount(usableW, settings.sizeIn, settings.gapIn));
   const rows = Math.max(1, fitCount(usableH, settings.sizeIn, settings.gapIn));
 
   return {

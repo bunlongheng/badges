@@ -34,9 +34,10 @@ describe("computeLayout", () => {
     expect(usableW).toBe(8);
   });
 
-  it("respects a user column choice below the max", () => {
+  it("always maximizes columns to fill the safe zone (ignores the columns setting)", () => {
+    // 8" usable / 1" badges with no gap -> 8 columns, regardless of settings.columns
     const s: Settings = { ...DEFAULT_SETTINGS, sizeIn: 1, columns: 3, gapIn: 0, marginIn: 0.25 };
-    expect(computeLayout(s).columns).toBe(3);
+    expect(computeLayout(s).columns).toBe(8);
   });
 
   it("always keeps at least one column and row", () => {

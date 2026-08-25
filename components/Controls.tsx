@@ -1,14 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import {
-  BADGE_STYLES,
-  FITS,
-  PAPERS,
-  SHAPES,
-  SIZE_PRESETS,
-  type Settings,
-} from "@/lib/presets";
+import { BADGE_STYLES, FITS, SHAPES, SIZE_PRESETS, type Settings } from "@/lib/presets";
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
   return (
@@ -93,74 +86,70 @@ export function Controls({
   settings,
   update,
   reset,
-  maxCols,
 }: {
   settings: Settings;
   update: <K extends keyof Settings>(key: K, value: Settings[K]) => void;
   reset: () => void;
-  maxCols: number;
 }) {
   return (
     <div className="space-y-5">
-      <Field label="Paper">
-        <select
-          value={settings.paperId}
-          onChange={(e) => update("paperId", e.target.value)}
-          className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-800 outline-none focus:border-brand-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
-        >
-          {PAPERS.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.label}
-            </option>
-          ))}
-        </select>
-      </Field>
-
-      <Field label="Badge size" hint={`${settings.sizeIn}"`}>
-        <div className="flex flex-wrap gap-1.5">
-          {SIZE_PRESETS.map((s) => (
-            <button
-              key={s.inches}
-              type="button"
-              onClick={() => update("sizeIn", s.inches)}
-              className={[
-                "rounded-md border px-2 py-1 text-xs font-medium transition",
-                settings.sizeIn === s.inches
-                  ? "border-brand-500 bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300"
-                  : "border-zinc-200 text-zinc-600 hover:border-zinc-300 dark:border-zinc-700 dark:text-zinc-400",
-              ].join(" ")}
-            >
-              {s.label}
-            </button>
-          ))}
+      <Field label="Badge size">
+        <div className="grid grid-cols-2 gap-2">
+          {SIZE_PRESETS.map((s) => {
+            const active = Math.abs(settings.sizeIn - s.inches) < 0.001;
+            return (
+              <button
+                key={s.label}
+                type="button"
+                onClick={() => update("sizeIn", s.inches)}
+                className={[
+                  "rounded-xl border p-3 text-left transition",
+                  active
+                    ? "border-brand-500 bg-brand-50 ring-1 ring-brand-500"
+                    : "border-zinc-200 hover:border-zinc-300",
+                ].join(" ")}
+              >
+                <div
+                  className={[
+                    "text-sm font-semibold",
+                    active ? "text-brand-700" : "text-zinc-800",
+                  ].join(" ")}
+                >
+                  {s.label}
+                </div>
+                <div className="mt-0.5 text-[11px] text-zinc-500">{s.detail}</div>
+              </button>
+            );
+          })}
         </div>
-        <input
-          type="range"
-          min={0.75}
-          max={5}
-          step={0.125}
-          value={settings.sizeIn}
-          onChange={(e) => update("sizeIn", parseFloat(e.target.value))}
-          className="mt-2 w-full"
-        />
       </Field>
 
-      <Field label="Columns" hint={`${Math.min(settings.columns, maxCols)} of max ${maxCols}`}>
-        <input
-          type="range"
-          min={1}
-          max={8}
-          step={1}
-          value={settings.columns}
-          onChange={(e) => update("columns", parseInt(e.target.value, 10))}
-          className="w-full"
-        />
+      <Field label="Shape">
+        <Segmented value={settings.shape} options={SHAPES} onChange={(v) => update("shape", v)} />
       </Field>
 
-      <div className="grid grid-cols-1 gap-4">
-        <Field label="Shape">
-          <Segmented value={settings.shape} options={SHAPES} onChange={(v) => update("shape", v)} />
-        </Field>
+      <Field
+        label="Page margin"
+        hint={settings.marginIn === 0 ? "edge to edge" : `${settings.marginIn}" safe`}
+      >
+        <Segmented
+          value={String(settings.marginIn)}
+          options={[
+            { id: "0", label: '0" (max fit)' },
+            { id: "0.1", label: '0.1"' },
+            { id: "0.25", label: '0.25" safe' },
+          ]}
+          onChange={(v) => update("marginIn", parseFloat(v))}
+        />
+        {settings.marginIn === 0 && (
+          <p className="mt-1.5 text-[11px] text-amber-600">
+            No margin fits the most badges, but some printers may clip the edges.
+          </p>
+        )}
+      </Field>
+
+      {/* Advanced - hidden on phone to keep the panel short */}
+      <div className="hidden space-y-5 sm:block">
         <Field label="Image fit">
           <Segmented value={settings.fit} options={FITS} onChange={(v) => update("fit", v)} />
         </Field>
@@ -168,30 +157,6 @@ export function Controls({
           <Segmented value={settings.style} options={BADGE_STYLES} onChange={(v) => update("style", v)} />
         </Field>
       </div>
-
-      <Field label="Gap" hint={`${settings.gapIn}"`}>
-        <input
-          type="range"
-          min={0}
-          max={0.5}
-          step={0.05}
-          value={settings.gapIn}
-          onChange={(e) => update("gapIn", parseFloat(e.target.value))}
-          className="w-full"
-        />
-      </Field>
-
-      <Field label="Page margin" hint={`${settings.marginIn}"`}>
-        <input
-          type="range"
-          min={0}
-          max={1}
-          step={0.05}
-          value={settings.marginIn}
-          onChange={(e) => update("marginIn", parseFloat(e.target.value))}
-          className="w-full"
-        />
-      </Field>
 
       <div className="space-y-3 border-t border-zinc-200 pt-4 dark:border-zinc-800">
         <Toggle

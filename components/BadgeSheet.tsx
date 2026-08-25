@@ -1,4 +1,6 @@
-import type { CSSProperties } from "react";
+"use client";
+
+import { useRef, useState, type CSSProperties, type PointerEvent } from "react";
 import type { BadgeImage } from "@/lib/useImages";
 import type { SheetLayout } from "@/lib/layout";
 import type { Settings } from "@/lib/presets";
@@ -11,11 +13,7 @@ function cellRadius(size: number, shape: Settings["shape"]): string {
   return "0";
 }
 
-function frameStyle(
-  index: number,
-  size: number,
-  settings: Settings
-): CSSProperties {
+function frameStyle(index: number, size: number, settings: Settings): CSSProperties {
   const radius = cellRadius(size, settings.shape);
   const base: CSSProperties = {
     width: `${size}in`,
@@ -28,7 +26,6 @@ function frameStyle(
     justifyContent: "center",
     background: "#ffffff",
   };
-
   if (settings.style === "kids") {
     return {
       ...base,
@@ -54,6 +51,9 @@ export function BadgeSheet({
   layout,
   settings,
   scale,
+  onSetOffset,
+  totalPages,
+  caption,
 }: {
   page: number[];
   pageIndex: number;
@@ -61,7 +61,56 @@ export function BadgeSheet({
   layout: SheetLayout;
   settings: Settings;
   scale: number;
+  onSetOffset?: (id: string, x: number, y: number) => void;
+  totalPages: number;
+  caption: string;
 }) {
+  const drag = useRef<{
+    id: string;
+    startX: number;
+    startY: number;
+    offX: number;
+    offY: number;
+  } | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  const cellPx = settings.sizeIn * 96 * scale;
+  const canPan = settings.fit === "cover" && !!onSetOffset;
+
+  const onDown = (e: PointerEvent<HTMLDivElement>, img: BadgeImage) => {
+    if (!canPan) return;
+    e.preventDefault();
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    setActiveId(img.id);
+    drag.current = {
+      id: img.id,
+      startX: e.clientX,
+      startY: e.clientY,
+      offX: img.offsetX,
+      offY: img.offsetY,
+    };
+  };
+
+  const onMove = (e: PointerEvent<HTMLDivElement>) => {
+    if (!drag.current || !onSetOffset || cellPx <= 0) return;
+    const dx = e.clientX - drag.current.startX;
+    const dy = e.clientY - drag.current.startY;
+    // Drag the photo: moving right reveals its left edge (offset decreases).
+    onSetOffset(
+      drag.current.id,
+      drag.current.offX - (dx / cellPx) * 100,
+      drag.current.offY - (dy / cellPx) * 100
+    );
+  };
+
+  const onUp = (e: PointerEvent<HTMLDivElement>) => {
+    if (drag.current) {
+      (e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId);
+      drag.current = null;
+      setActiveId(null);
+    }
+  };
+
   const wrapStyle: CSSProperties = {
     width: layout.paperW * 96 * scale,
     height: layout.paperH * 96 * scale,
@@ -70,6 +119,9 @@ export function BadgeSheet({
   const sheetStyle: CSSProperties = {
     width: `${layout.paperW}in`,
     height: `${layout.paperH}in`,
+    // Explicit hex color so nothing in this subtree inherits Tailwind's oklch/lab
+    // color from <body> - html2canvas (PDF export) cannot parse lab()/oklch().
+    color: "#111111",
     background: "#ffffff",
     padding: `${settings.marginIn}in`,
     boxSizing: "border-box",
@@ -84,32 +136,90 @@ export function BadgeSheet({
     boxShadow: "0 10px 30px rgba(0,0,0,0.15)",
   };
 
+  const radius = cellRadius(settings.sizeIn, settings.shape);
+
   return (
     <div className="sheet-wrap" style={wrapStyle} aria-label={`Page ${pageIndex + 1}`}>
       <div className="sheet" style={sheetStyle}>
         {page.map((imgIdx, i) => {
           const img = images[imgIdx];
-          const guide: CSSProperties = settings.cutGuides
-            ? { outline: "0.01in dashed #c9c9c9", outlineOffset: "-0.005in" }
-            : {};
+          const active = !!img && activeId === img.id;
           return (
-            <div key={i} style={{ ...frameStyle(i, settings.sizeIn, settings), ...guide }}>
+            <div
+              key={i}
+              onPointerDown={img ? (e) => onDown(e, img) : undefined}
+              onPointerMove={onMove}
+              onPointerUp={onUp}
+              style={{
+                ...frameStyle(i, settings.sizeIn, settings),
+                position: "relative",
+                cursor: canPan && img ? (active ? "grabbing" : "grab") : "default",
+                touchAction: canPan ? "none" : undefined,
+              }}
+            >
               {img ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={img.url}
                   alt=""
+                  draggable={false}
                   style={{
                     width: "100%",
                     height: "100%",
                     objectFit: settings.fit,
+                    objectPosition: `${img.offsetX}% ${img.offsetY}%`,
                     display: "block",
+                    pointerEvents: "none",
                   }}
                 />
               ) : null}
+
+              {/* Cut guide - drawn on top so it stays visible over a cover image */}
+              {settings.cutGuides && (
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    borderRadius: radius,
+                    border: "0.012in dashed #8a8f98",
+                    pointerEvents: "none",
+                  }}
+                />
+              )}
+
+              {/* Active drag - blue border while repositioning (screen only) */}
+              {active && (
+                <div
+                  className="no-print"
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    borderRadius: radius,
+                    border: "0.03in solid #2563eb",
+                    boxShadow: "0 0 0.06in rgba(37,99,235,0.5)",
+                    pointerEvents: "none",
+                  }}
+                />
+              )}
             </div>
           );
         })}
+
+        {/* Stats caption printed at the bottom of the sheet itself */}
+        <div
+          style={{
+            position: "absolute",
+            left: `${settings.marginIn}in`,
+            right: `${settings.marginIn}in`,
+            bottom: `${Math.max(0.12, settings.marginIn * 0.5)}in`,
+            textAlign: "center",
+            font: "500 0.12in ui-sans-serif, system-ui, sans-serif",
+            color: "#9aa0a6",
+            letterSpacing: "0.01in",
+          }}
+        >
+          {caption} · Page {pageIndex + 1} of {totalPages}
+        </div>
       </div>
     </div>
   );

@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
-import { ThemeToggle } from "@/components/ThemeToggle";
 
 export const metadata: Metadata = {
   title: "Sign in",
@@ -11,11 +10,7 @@ export const metadata: Metadata = {
 export default function SignIn() {
   return (
     <div className="flex min-h-screen flex-col">
-      <div className="flex justify-end p-4">
-        <ThemeToggle />
-      </div>
-
-      <main className="flex flex-1 items-center justify-center px-4 pb-16">
+      <main className="flex flex-1 items-center justify-center px-4 py-16">
         <div className="w-full max-w-sm">
           <div className="rounded-3xl border border-zinc-200 bg-white p-8 shadow-xl shadow-zinc-200/50 dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-black/30">
             <div className="flex flex-col items-center text-center">

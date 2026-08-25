@@ -26,7 +26,7 @@ describe("Controls", () => {
   it("updates shape when a segmented option is clicked", async () => {
     const update = vi.fn();
     render(
-      <Controls settings={DEFAULT_SETTINGS} update={update} reset={vi.fn()} maxCols={4} />
+      <Controls settings={DEFAULT_SETTINGS} update={update} reset={vi.fn()} />
     );
     await userEvent.click(screen.getByRole("button", { name: "Circle" }));
     expect(update).toHaveBeenCalledWith("shape", "circle");
@@ -35,7 +35,7 @@ describe("Controls", () => {
   it("toggles repeat", async () => {
     const update = vi.fn();
     render(
-      <Controls settings={DEFAULT_SETTINGS} update={update} reset={vi.fn()} maxCols={4} />
+      <Controls settings={DEFAULT_SETTINGS} update={update} reset={vi.fn()} />
     );
     await userEvent.click(screen.getByText("Repeat to fill page"));
     expect(update).toHaveBeenCalledWith("repeat", true);
@@ -44,7 +44,7 @@ describe("Controls", () => {
   it("calls reset", async () => {
     const reset = vi.fn();
     render(
-      <Controls settings={DEFAULT_SETTINGS} update={vi.fn()} reset={reset} maxCols={4} />
+      <Controls settings={DEFAULT_SETTINGS} update={vi.fn()} reset={reset} />
     );
     await userEvent.click(screen.getByRole("button", { name: /reset to defaults/i }));
     expect(reset).toHaveBeenCalled();
@@ -53,8 +53,8 @@ describe("Controls", () => {
 
 describe("ImageTray", () => {
   const imgs = [
-    { id: "1", url: "blob:1", name: "one" },
-    { id: "2", url: "blob:2", name: "two" },
+    { id: "1", url: "blob:1", name: "one", offsetX: 50, offsetY: 50 },
+    { id: "2", url: "blob:2", name: "two", offsetX: 50, offsetY: 50 },
   ];
 
   it("renders nothing when empty", () => {
