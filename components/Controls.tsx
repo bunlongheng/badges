@@ -158,12 +158,7 @@ export function Controls({
         </Field>
       </div>
 
-      <div className="space-y-3 border-t border-zinc-200 pt-4 dark:border-zinc-800">
-        <Toggle
-          label="Repeat to fill page"
-          checked={settings.repeat}
-          onChange={(v) => update("repeat", v)}
-        />
+      <div className="space-y-3 border-t border-zinc-200 pt-4">
         <Toggle
           label="Show cut guides"
           checked={settings.cutGuides}
