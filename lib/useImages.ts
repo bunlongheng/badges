@@ -47,8 +47,10 @@ async function toDisplayableBlob(file: File): Promise<Blob> {
 export function useImages() {
   const [images, setImages] = useState<BadgeImage[]>([]);
   const [converting, setConverting] = useState(0);
+  const [notice, setNotice] = useState<{ text: string; nonce: number } | null>(null);
   const urls = useRef<Set<string>>(new Set());
   const hashes = useRef<Set<string>>(new Set());
+  const nonce = useRef(0);
 
   const add = useCallback(async (files: FileList | File[]) => {
     const list = Array.from(files).filter(
@@ -56,10 +58,12 @@ export function useImages() {
     );
     if (list.length === 0) return;
     setConverting((n) => n + list.length);
+    let skipped = 0;
     for (const f of list) {
       const hash = await sha256(f);
       // Skip exact duplicates (e.g. pasting the same image twice).
       if (hash && hashes.current.has(hash)) {
+        skipped += 1;
         setConverting((n) => n - 1);
         continue;
       }
@@ -73,7 +77,16 @@ export function useImages() {
       ]);
       setConverting((n) => n - 1);
     }
+    if (skipped > 0) {
+      nonce.current += 1;
+      setNotice({
+        text: `Skipped ${skipped} duplicate image${skipped === 1 ? "" : "s"} - already added`,
+        nonce: nonce.current,
+      });
+    }
   }, []);
+
+  const clearNotice = useCallback(() => setNotice(null), []);
 
   const remove = useCallback((id: string) => {
     setImages((prev) => {
@@ -118,5 +131,5 @@ export function useImages() {
     return () => set.forEach((u) => URL.revokeObjectURL(u));
   }, []);
 
-  return { images, add, remove, move, clear, setOffset, converting };
+  return { images, add, remove, move, clear, setOffset, converting, notice, clearNotice };
 }

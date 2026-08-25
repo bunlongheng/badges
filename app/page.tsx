@@ -15,7 +15,8 @@ import { SHAPES, SIZE_PRESETS } from "@/lib/presets";
 import { exportPdf } from "@/lib/pdf";
 
 export default function Home() {
-  const { images, add, remove, move, clear, setOffset, converting } = useImages();
+  const { images, add, remove, move, clear, setOffset, converting, notice, clearNotice } =
+    useImages();
   const { settings, update, reset } = useSettings();
   const { ref: stageRef, width } = useMeasure<HTMLDivElement>();
   const sheetsRef = useRef<HTMLDivElement>(null);
@@ -88,6 +89,13 @@ export default function Home() {
     document.addEventListener("paste", onPaste);
     return () => document.removeEventListener("paste", onPaste);
   }, [add]);
+
+  // Auto-dismiss the duplicate toast.
+  useEffect(() => {
+    if (!notice) return;
+    const t = setTimeout(clearNotice, 3200);
+    return () => clearTimeout(t);
+  }, [notice, clearNotice]);
 
   const layout = useMemo(() => computeLayout(settings), [settings]);
   // repeat-to-fill was removed; always flow images across pages (one per badge)
@@ -172,6 +180,22 @@ export default function Home() {
           className="paste-flash pointer-events-none fixed inset-0 z-50 bg-gradient-to-b from-brand-400/25 to-transparent"
           aria-hidden="true"
         />
+      )}
+
+      {notice && (
+        <div
+          key={notice.nonce}
+          className="anim-rise fixed bottom-5 left-1/2 z-[70] -translate-x-1/2"
+          role="status"
+        >
+          <div className="flex items-center gap-2.5 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-medium text-red-700 shadow-lg">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M15 9l-6 6M9 9l6 6" />
+            </svg>
+            {notice.text}
+          </div>
+        </div>
       )}
 
       {drag.active && (
