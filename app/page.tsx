@@ -90,9 +90,10 @@ export default function Home() {
   }, [add]);
 
   const layout = useMemo(() => computeLayout(settings), [settings]);
+  // repeat-to-fill was removed; always flow images across pages (one per badge)
   const pages = useMemo(
-    () => buildPages(images.length, layout.perPage, settings.repeat),
-    [images.length, layout.perPage, settings.repeat]
+    () => buildPages(images.length, layout.perPage, false),
+    [images.length, layout.perPage]
   );
 
   const scale = useMemo(() => {
@@ -265,7 +266,7 @@ export default function Home() {
             </aside>
 
             {/* Center panel: preview stage */}
-            <section className="order-3 rounded-2xl border border-zinc-200 bg-zinc-100/60 p-4 lg:order-2">
+            <section className="order-3 rounded-2xl border border-zinc-300 bg-zinc-100 p-4 lg:order-2">
               <div ref={stageRef} className="print-root">
                 <div ref={sheetsRef} className="flex flex-col items-center gap-6">
                   {pages.map((page, i) => (

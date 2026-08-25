@@ -31,11 +31,7 @@ body {
 }
 
 body {
-  @apply bg-zinc-50 text-zinc-900 antialiased;
-}
-
-.dark body {
-  @apply bg-zinc-950 text-zinc-100;
+  @apply bg-zinc-200 text-zinc-900 antialiased;
 }
 
 /* Custom range input */

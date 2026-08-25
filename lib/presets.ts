@@ -57,6 +57,7 @@ export type Settings = {
   style: BadgeStyle;
   repeat: boolean;
   cutGuides: boolean;
+  ruler: boolean;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -70,6 +71,7 @@ export const DEFAULT_SETTINGS: Settings = {
   style: "plain",
   repeat: false,
   cutGuides: true,
+  ruler: true,
 };
 
 export function getPaper(id: string): Paper {

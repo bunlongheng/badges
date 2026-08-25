@@ -32,13 +32,13 @@ describe("Controls", () => {
     expect(update).toHaveBeenCalledWith("shape", "circle");
   });
 
-  it("toggles repeat", async () => {
+  it("toggles the ruler off", async () => {
     const update = vi.fn();
     render(
       <Controls settings={DEFAULT_SETTINGS} update={update} reset={vi.fn()} />
     );
-    await userEvent.click(screen.getByText("Repeat to fill page"));
-    expect(update).toHaveBeenCalledWith("repeat", true);
+    await userEvent.click(screen.getByText("Show ruler & grid (cm)"));
+    expect(update).toHaveBeenCalledWith("ruler", false);
   });
 
   it("calls reset", async () => {

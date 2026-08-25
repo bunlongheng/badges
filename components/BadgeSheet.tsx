@@ -111,10 +111,17 @@ export function BadgeSheet({
     }
   };
 
-  const wrapStyle: CSSProperties = {
-    width: layout.paperW * 96 * scale,
-    height: layout.paperH * 96 * scale,
-  };
+  const pxW = layout.paperW * 96 * scale;
+  const pxH = layout.paperH * 96 * scale;
+  const wrapStyle: CSSProperties = { width: pxW, height: pxH, position: "relative" };
+
+  // cm ruler + grid (screen only) to prove the badges are true physical size.
+  const R = 24; // ruler thickness in px
+  const cmPx = (96 / 2.54) * scale; // px per centimetre on screen
+  const cmsW = Math.floor(layout.paperW * 2.54);
+  const cmsH = Math.floor(layout.paperH * 2.54);
+  const hTicks = Array.from({ length: cmsW + 1 }, (_, c) => c);
+  const vTicks = Array.from({ length: cmsH + 1 }, (_, c) => c);
 
   const sheetStyle: CSSProperties = {
     width: `${layout.paperW}in`,
@@ -139,8 +146,79 @@ export function BadgeSheet({
   const radius = cellRadius(settings.sizeIn, settings.shape);
 
   return (
-    <div className="sheet-wrap" style={wrapStyle} aria-label={`Page ${pageIndex + 1}`}>
-      <div className="sheet" style={sheetStyle}>
+    <div
+      style={{
+        position: "relative",
+        paddingTop: settings.ruler ? R : 0,
+        paddingLeft: settings.ruler ? R : 0,
+      }}
+      aria-label={`Page ${pageIndex + 1}`}
+    >
+      {settings.ruler && (
+        <>
+          <div
+            className="no-print"
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: R,
+              height: R,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 8,
+              color: "#71717a",
+            }}
+          >
+            cm
+          </div>
+          <div className="no-print" style={{ position: "absolute", top: 0, left: R, width: pxW, height: R }}>
+            {hTicks.map((c) => (
+              <div key={c} style={{ position: "absolute", left: c * cmPx, bottom: 0 }}>
+                <div style={{ width: 1, height: c % 5 === 0 ? 11 : 6, background: "#a1a1aa" }} />
+                {c % 5 === 0 && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      bottom: 12,
+                      left: 0,
+                      transform: "translateX(-50%)",
+                      fontSize: 8,
+                      color: "#52525b",
+                    }}
+                  >
+                    {c}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="no-print" style={{ position: "absolute", top: R, left: 0, width: R, height: pxH }}>
+            {vTicks.map((c) => (
+              <div key={c} style={{ position: "absolute", top: c * cmPx, right: 0 }}>
+                <div style={{ height: 1, width: c % 5 === 0 ? 11 : 6, background: "#a1a1aa" }} />
+                {c % 5 === 0 && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      right: 12,
+                      top: 0,
+                      transform: "translateY(-50%)",
+                      fontSize: 8,
+                      color: "#52525b",
+                    }}
+                  >
+                    {c}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+      <div className="sheet-wrap" style={wrapStyle}>
+        <div className="sheet" style={sheetStyle}>
         {page.map((imgIdx, i) => {
           const img = images[imgIdx];
           const active = !!img && activeId === img.id;
@@ -220,6 +298,24 @@ export function BadgeSheet({
         >
           {caption} · Page {pageIndex + 1} of {totalPages}
         </div>
+      </div>
+
+      {settings.ruler && (
+        <div className="no-print" style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+          {hTicks.slice(1).map((c) => (
+            <div
+              key={"v" + c}
+              style={{ position: "absolute", left: c * cmPx, top: 0, bottom: 0, width: 1, background: "rgba(0,0,0,0.05)" }}
+            />
+          ))}
+          {vTicks.slice(1).map((c) => (
+            <div
+              key={"h" + c}
+              style={{ position: "absolute", top: c * cmPx, left: 0, right: 0, height: 1, background: "rgba(0,0,0,0.05)" }}
+            />
+          ))}
+        </div>
+      )}
       </div>
     </div>
   );
