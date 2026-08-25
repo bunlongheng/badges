@@ -54,6 +54,7 @@ export function BadgeSheet({
   onSetOffset,
   totalPages,
   caption,
+  onCycleUnit,
 }: {
   page: number[];
   pageIndex: number;
@@ -64,6 +65,7 @@ export function BadgeSheet({
   onSetOffset?: (id: string, x: number, y: number) => void;
   totalPages: number;
   caption: string;
+  onCycleUnit?: () => void;
 }) {
   const drag = useRef<{
     id: string;
@@ -115,13 +117,15 @@ export function BadgeSheet({
   const pxH = layout.paperH * 96 * scale;
   const wrapStyle: CSSProperties = { width: pxW, height: pxH, position: "relative" };
 
-  // cm ruler + grid (screen only) to prove the badges are true physical size.
+  // Ruler + grid (screen only) to prove the badges are true physical size.
   const R = 24; // ruler thickness in px
-  const cmPx = (96 / 2.54) * scale; // px per centimetre on screen
-  const cmsW = Math.floor(layout.paperW * 2.54);
-  const cmsH = Math.floor(layout.paperH * 2.54);
-  const hTicks = Array.from({ length: cmsW + 1 }, (_, c) => c);
-  const vTicks = Array.from({ length: cmsH + 1 }, (_, c) => c);
+  const isCm = settings.rulerUnit === "cm";
+  const unitPx = (isCm ? 96 / 2.54 : 96) * scale; // px per unit on screen
+  const labelEvery = isCm ? 5 : 1; // avoid crowding cm labels
+  const countW = Math.floor(layout.paperW * (isCm ? 2.54 : 1));
+  const countH = Math.floor(layout.paperH * (isCm ? 2.54 : 1));
+  const hTicks = Array.from({ length: countW + 1 }, (_, c) => c);
+  const vTicks = Array.from({ length: countH + 1 }, (_, c) => c);
 
   const sheetStyle: CSSProperties = {
     width: `${layout.paperW}in`,
@@ -156,7 +160,10 @@ export function BadgeSheet({
     >
       {settings.ruler && (
         <>
-          <div
+          <button
+            type="button"
+            onClick={onCycleUnit}
+            title="Click to switch unit"
             className="no-print"
             style={{
               position: "absolute",
@@ -167,17 +174,21 @@ export function BadgeSheet({
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontSize: 8,
-              color: "#71717a",
+              fontSize: 9,
+              fontWeight: 600,
+              color: "#4f46e5",
+              cursor: "pointer",
+              background: "transparent",
+              border: "none",
             }}
           >
-            cm
-          </div>
+            {settings.rulerUnit}
+          </button>
           <div className="no-print" style={{ position: "absolute", top: 0, left: R, width: pxW, height: R }}>
             {hTicks.map((c) => (
-              <div key={c} style={{ position: "absolute", left: c * cmPx, bottom: 0 }}>
-                <div style={{ width: 1, height: c % 5 === 0 ? 11 : 6, background: "#a1a1aa" }} />
-                {c % 5 === 0 && (
+              <div key={c} style={{ position: "absolute", left: c * unitPx, bottom: 0 }}>
+                <div style={{ width: 1, height: c % labelEvery === 0 ? 11 : 6, background: "#a1a1aa" }} />
+                {c % labelEvery === 0 && (
                   <div
                     style={{
                       position: "absolute",
@@ -196,9 +207,9 @@ export function BadgeSheet({
           </div>
           <div className="no-print" style={{ position: "absolute", top: R, left: 0, width: R, height: pxH }}>
             {vTicks.map((c) => (
-              <div key={c} style={{ position: "absolute", top: c * cmPx, right: 0 }}>
-                <div style={{ height: 1, width: c % 5 === 0 ? 11 : 6, background: "#a1a1aa" }} />
-                {c % 5 === 0 && (
+              <div key={c} style={{ position: "absolute", top: c * unitPx, right: 0 }}>
+                <div style={{ height: 1, width: c % labelEvery === 0 ? 11 : 6, background: "#a1a1aa" }} />
+                {c % labelEvery === 0 && (
                   <div
                     style={{
                       position: "absolute",
@@ -305,13 +316,13 @@ export function BadgeSheet({
           {hTicks.slice(1).map((c) => (
             <div
               key={"v" + c}
-              style={{ position: "absolute", left: c * cmPx, top: 0, bottom: 0, width: 1, background: "rgba(0,0,0,0.05)" }}
+              style={{ position: "absolute", left: c * unitPx, top: 0, bottom: 0, width: 1, background: "rgba(0,0,0,0.05)" }}
             />
           ))}
           {vTicks.slice(1).map((c) => (
             <div
               key={"h" + c}
-              style={{ position: "absolute", top: c * cmPx, left: 0, right: 0, height: 1, background: "rgba(0,0,0,0.05)" }}
+              style={{ position: "absolute", top: c * unitPx, left: 0, right: 0, height: 1, background: "rgba(0,0,0,0.05)" }}
             />
           ))}
         </div>

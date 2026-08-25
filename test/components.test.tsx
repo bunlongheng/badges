@@ -37,7 +37,7 @@ describe("Controls", () => {
     render(
       <Controls settings={DEFAULT_SETTINGS} update={update} reset={vi.fn()} />
     );
-    await userEvent.click(screen.getByText("Show ruler & grid (cm)"));
+    await userEvent.click(screen.getByText("Show ruler & grid"));
     expect(update).toHaveBeenCalledWith("ruler", false);
   });
 

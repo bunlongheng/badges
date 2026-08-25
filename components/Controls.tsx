@@ -165,7 +165,7 @@ export function Controls({
           onChange={(v) => update("cutGuides", v)}
         />
         <Toggle
-          label="Show ruler & grid (cm)"
+          label="Show ruler & grid"
           checked={settings.ruler}
           onChange={(v) => update("ruler", v)}
         />

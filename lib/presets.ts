@@ -58,6 +58,7 @@ export type Settings = {
   repeat: boolean;
   cutGuides: boolean;
   ruler: boolean;
+  rulerUnit: "in" | "cm";
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -72,6 +73,7 @@ export const DEFAULT_SETTINGS: Settings = {
   repeat: false,
   cutGuides: true,
   ruler: true,
+  rulerUnit: "in",
 };
 
 export function getPaper(id: string): Paper {

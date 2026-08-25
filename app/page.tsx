@@ -428,6 +428,9 @@ export default function Home() {
                       onSetOffset={setOffset}
                       totalPages={pages.length}
                       caption={caption}
+                      onCycleUnit={() =>
+                        update("rulerUnit", settings.rulerUnit === "in" ? "cm" : "in")
+                      }
                     />
                   ))}
                 </div>
