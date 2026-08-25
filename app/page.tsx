@@ -116,10 +116,10 @@ export default function Home() {
 
   const scale = useMemo(() => {
     if (!width) return 0.6;
-    // Use the available preview column width (capped) instead of leaving it empty.
-    const target = Math.min(width, 900);
-    return Math.min(1, target / (layout.paperW * 96));
-  }, [width, layout.paperW]);
+    // Fit within the column, leaving room for the ruler gutter so nothing overflows.
+    const target = Math.min(width - (settings.ruler ? 30 : 8), 900);
+    return Math.max(0.15, Math.min(1, target / (layout.paperW * 96)));
+  }, [width, layout.paperW, settings.ruler]);
 
   const sizePreset =
     SIZE_PRESETS.find((s) => Math.abs(s.inches - settings.sizeIn) < 0.001) ?? SIZE_PRESETS[0];
@@ -392,7 +392,7 @@ export default function Home() {
             </section>
           </>
         ) : (
-          <div className="grid items-start gap-5 lg:grid-cols-[360px_1fr_300px]">
+          <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[340px_minmax(0,1fr)_300px]">
             {/* Left panel: images */}
             <aside className="no-print order-1 rounded-2xl border border-zinc-200 bg-white p-4 lg:sticky lg:top-20">
               <div className="mb-3 flex items-center justify-between">
@@ -423,7 +423,7 @@ export default function Home() {
             </aside>
 
             {/* Center panel: preview stage */}
-            <section className="order-3 rounded-2xl border border-zinc-300 bg-zinc-100 p-4 lg:order-2">
+            <section className="order-3 overflow-x-auto rounded-2xl border border-zinc-300 bg-zinc-100 p-3 sm:p-4 lg:order-2">
               <div ref={stageRef} className="print-root">
                 <div ref={sheetsRef} className="flex flex-col items-center gap-6">
                   {pages.map((page, i) => (

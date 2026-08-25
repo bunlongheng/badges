@@ -40,7 +40,7 @@ export function ImageTray({
           Clear all
         </button>
       </div>
-      <ul className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 lg:grid-cols-3">
+      <ul className="grid grid-cols-4 gap-2 sm:grid-cols-5 lg:grid-cols-3">
         {images.map((img, i) => (
           <li
             key={img.id}
