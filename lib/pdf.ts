@@ -161,9 +161,9 @@ export async function exportPdf(
       pdf.addImage(canvas.toDataURL("image/jpeg", JPEG_QUALITY), "JPEG", x, y, cellIn, cellIn, undefined, "FAST");
 
       if (settings.cutGuides) {
-        pdf.setDrawColor(200);
+        pdf.setDrawColor(0); // black - easy to see when cutting
         pdf.setLineDashPattern([0.04, 0.03], 0);
-        pdf.setLineWidth(0.008);
+        pdf.setLineWidth(0.01);
         if (settings.shape === "circle") {
           pdf.circle(x + cellIn / 2, y + cellIn / 2, cellIn / 2, "S");
         } else {

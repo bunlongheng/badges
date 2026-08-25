@@ -181,7 +181,7 @@ export function BadgeSheet({
                     position: "absolute",
                     inset: 0,
                     borderRadius: radius,
-                    border: "0.012in dashed #8a8f98",
+                    border: "0.014in dashed #000000",
                     pointerEvents: "none",
                   }}
                 />
