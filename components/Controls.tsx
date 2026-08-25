@@ -128,24 +128,46 @@ export function Controls({
         <Segmented value={settings.shape} options={SHAPES} onChange={(v) => update("shape", v)} />
       </Field>
 
-      <Field
-        label="Page margin"
-        hint={settings.marginIn === 0 ? "edge to edge" : `${settings.marginIn}" safe`}
-      >
-        <Segmented
-          value={String(settings.marginIn)}
-          options={[
-            { id: "0", label: '0" (max fit)' },
+      <Field label="Page margin">
+        <div className="grid grid-cols-3 gap-1 rounded-lg bg-zinc-100 p-1">
+          {[
+            { id: "auto", label: "Auto" },
             { id: "0.1", label: '0.1"' },
-            { id: "0.25", label: '0.25" safe' },
-          ]}
-          onChange={(v) => update("marginIn", parseFloat(v))}
-        />
-        {settings.marginIn === 0 && (
-          <p className="mt-1.5 text-[11px] text-amber-600">
-            No margin fits the most badges, but some printers may clip the edges.
-          </p>
-        )}
+            { id: "0.25", label: '0.25"' },
+          ].map((o) => {
+            const active =
+              o.id === "auto"
+                ? settings.marginAuto
+                : !settings.marginAuto && settings.marginIn === parseFloat(o.id);
+            return (
+              <button
+                key={o.id}
+                type="button"
+                onClick={() => {
+                  if (o.id === "auto") {
+                    update("marginAuto", true);
+                  } else {
+                    update("marginAuto", false);
+                    update("marginIn", parseFloat(o.id));
+                  }
+                }}
+                className={[
+                  "rounded-md px-2 py-1.5 text-xs font-medium transition",
+                  active
+                    ? "bg-white text-brand-700 shadow-sm"
+                    : "text-zinc-500 hover:text-zinc-800",
+                ].join(" ")}
+              >
+                {o.label}
+              </button>
+            );
+          })}
+        </div>
+        <p className="mt-1.5 text-[11px] text-zinc-400">
+          {settings.marginAuto
+            ? "Fits the most badges with a safe printable border."
+            : "Fixed safe border around the page."}
+        </p>
       </Field>
 
       {/* Advanced - hidden on phone to keep the panel short */}

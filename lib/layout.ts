@@ -9,9 +9,36 @@ export type SheetLayout = {
   perPage: number;
   /** cell edge length in inches */
   cellIn: number;
+  /** effective page margin in inches (auto-computed or manual) */
+  marginIn: number;
   paperW: number;
   paperH: number;
 };
+
+/** Smallest printer-safe margin, and the step used when searching for the best fit. */
+const SAFE_MIN = 0.13;
+
+/**
+ * Auto margin: the most generous margin (>= SAFE_MIN) that still fits the maximum
+ * number of badges, so the grid is centered with the largest even safe border.
+ */
+export function autoSafeMargin(
+  paperW: number,
+  paperH: number,
+  sizeIn: number,
+  gapIn: number
+): number {
+  const cols0 = fitCount(paperW - SAFE_MIN * 2, sizeIn, gapIn);
+  const rows0 = fitCount(paperH - SAFE_MIN * 2, sizeIn, gapIn);
+  let best = SAFE_MIN;
+  for (let m = SAFE_MIN; m <= 0.75; m += 0.01) {
+    const c = fitCount(paperW - m * 2, sizeIn, gapIn);
+    const r = fitCount(paperH - m * 2, sizeIn, gapIn);
+    if (c === cols0 && r === rows0) best = m;
+    else break;
+  }
+  return Math.round(best * 1000) / 1000;
+}
 
 /**
  * How many badges of `size` (+ gap) fit within `available` inches.
@@ -29,8 +56,11 @@ export function fitCount(available: number, size: number, gap: number): number {
  */
 export function computeLayout(settings: Settings): SheetLayout {
   const paper = getPaper(settings.paperId);
-  const usableW = paper.w - settings.marginIn * 2;
-  const usableH = paper.h - settings.marginIn * 2;
+  const marginIn = settings.marginAuto
+    ? autoSafeMargin(paper.w, paper.h, settings.sizeIn, settings.gapIn)
+    : settings.marginIn;
+  const usableW = paper.w - marginIn * 2;
+  const usableH = paper.h - marginIn * 2;
 
   // Always maximize: fit as many badges as physically possible in the safe zone.
   const columns = Math.max(1, fitCount(usableW, settings.sizeIn, settings.gapIn));
@@ -41,6 +71,7 @@ export function computeLayout(settings: Settings): SheetLayout {
     rows,
     perPage: columns * rows,
     cellIn: settings.sizeIn,
+    marginIn,
     paperW: paper.w,
     paperH: paper.h,
   };

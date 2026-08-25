@@ -54,6 +54,8 @@ export type Settings = {
   marginIn: number;
   shape: Shape;
   fit: Fit;
+  /** when true, margin is auto-computed to fit the most badges with a safe border */
+  marginAuto: boolean;
   style: BadgeStyle;
   repeat: boolean;
   cutGuides: boolean;
@@ -66,7 +68,8 @@ export const DEFAULT_SETTINGS: Settings = {
   sizeIn: SIZE_LARGE_IN,
   columns: 3, // unused - layout auto-maximizes
   gapIn: 0, // touch, so we fit the most badges per page
-  marginIn: 0.25, // print-safe margin
+  marginIn: 0.25, // fallback when marginAuto is off
+  marginAuto: true, // auto-fit the most badges with a safe border
   shape: "circle",
   fit: "cover",
   style: "plain",

@@ -130,8 +130,8 @@ export async function exportPdf(
   const gap = settings.gapIn;
   const gridW = columns * cellIn + (columns - 1) * gap;
   const gridH = rows * cellIn + (rows - 1) * gap;
-  const startX = settings.marginIn + (paperW - settings.marginIn * 2 - gridW) / 2;
-  const startY = settings.marginIn + Math.max(0, (paperH - settings.marginIn * 2 - gridH) / 2) * 0; // top-aligned
+  const startX = layout.marginIn + (paperW - layout.marginIn * 2 - gridW) / 2;
+  const startY = layout.marginIn + Math.max(0, (paperH - layout.marginIn * 2 - gridH) / 2) * 0; // top-aligned
 
   for (let p = 0; p < pages.length; p++) {
     if (p > 0) pdf.addPage([paperW, paperH], orientation);
@@ -143,7 +143,7 @@ export async function exportPdf(
       pdf.text(
         `${caption}  ·  Page ${p + 1} of ${pages.length}`,
         paperW / 2,
-        paperH - Math.max(0.12, settings.marginIn * 0.5),
+        paperH - Math.max(0.12, layout.marginIn * 0.5),
         { align: "center" }
       );
     }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildPages, computeLayout, fitCount, pageCount } from "@/lib/layout";
+import { autoSafeMargin, buildPages, computeLayout, fitCount, pageCount } from "@/lib/layout";
 import { DEFAULT_SETTINGS, getPaper, type Settings } from "@/lib/presets";
 
 describe("fitCount", () => {
@@ -23,7 +23,7 @@ describe("fitCount", () => {
 
 describe("computeLayout", () => {
   it("computes a grid that fits the paper and clamps columns", () => {
-    const s: Settings = { ...DEFAULT_SETTINGS, sizeIn: 2, columns: 8, gapIn: 0, marginIn: 0.25 };
+    const s: Settings = { ...DEFAULT_SETTINGS, sizeIn: 2, columns: 8, gapIn: 0, marginIn: 0.25, marginAuto: false };
     const layout = computeLayout(s);
     const paper = getPaper(s.paperId); // letter 8.5 x 11
     const usableW = paper.w - 0.5; // 8.0
@@ -36,15 +36,28 @@ describe("computeLayout", () => {
 
   it("always maximizes columns to fill the safe zone (ignores the columns setting)", () => {
     // 8" usable / 1" badges with no gap -> 8 columns, regardless of settings.columns
-    const s: Settings = { ...DEFAULT_SETTINGS, sizeIn: 1, columns: 3, gapIn: 0, marginIn: 0.25 };
+    const s: Settings = { ...DEFAULT_SETTINGS, sizeIn: 1, columns: 3, gapIn: 0, marginIn: 0.25, marginAuto: false };
     expect(computeLayout(s).columns).toBe(8);
   });
 
   it("always keeps at least one column and row", () => {
-    const s: Settings = { ...DEFAULT_SETTINGS, sizeIn: 20, columns: 1, gapIn: 0, marginIn: 0 };
+    const s: Settings = { ...DEFAULT_SETTINGS, sizeIn: 20, columns: 1, gapIn: 0, marginIn: 0, marginAuto: false };
     const layout = computeLayout(s);
     expect(layout.columns).toBeGreaterThanOrEqual(1);
     expect(layout.rows).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe("autoSafeMargin", () => {
+  it("maximizes fit with a safe border (Large 6.8cm on Letter fits 3x4)", () => {
+    const large = 6.8 / 2.54; // 2.677"
+    const m = autoSafeMargin(8.5, 11, large, 0);
+    expect(m).toBeGreaterThanOrEqual(0.13); // never below the safe minimum
+    const s: Settings = { ...DEFAULT_SETTINGS, sizeIn: large, gapIn: 0, marginAuto: true };
+    const layout = computeLayout(s);
+    expect(layout.columns).toBe(3);
+    expect(layout.rows).toBe(4);
+    expect(layout.perPage).toBe(12); // 12, not 9 - the whole point
   });
 });
 

@@ -102,6 +102,11 @@ export default function Home() {
     if (settings.fit !== "cover") update("fit", "cover");
   }, [settings.fit, update]);
 
+  // The gap control was removed; badges always touch (max fit). Migrate old values.
+  useEffect(() => {
+    if (settings.gapIn !== 0) update("gapIn", 0);
+  }, [settings.gapIn, update]);
+
   const layout = useMemo(() => computeLayout(settings), [settings]);
   // repeat-to-fill was removed; always flow images across pages (one per badge)
   const pages = useMemo(
@@ -121,7 +126,7 @@ export default function Home() {
   const shapeLabel = SHAPES.find((s) => s.id === settings.shape)?.label ?? settings.shape;
   const caption = `${sizePreset.label} (${sizePreset.cm} cm)  ·  ${shapeLabel}${
     settings.shape === "circle" ? "s" : ""
-  }  ·  ${layout.perPage} per page  ·  Safe margin ${settings.marginIn}"`;
+  }  ·  ${layout.perPage} per page  ·  Safe margin ${layout.marginIn.toFixed(2)}"`;
 
   const pdfName = `${sizePreset.label.toLowerCase()}-badges.pdf`;
 

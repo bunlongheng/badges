@@ -134,7 +134,7 @@ export function BadgeSheet({
     // color from <body> - html2canvas (PDF export) cannot parse lab()/oklch().
     color: "#111111",
     background: "#ffffff",
-    padding: `${settings.marginIn}in`,
+    padding: `${layout.marginIn}in`,
     boxSizing: "border-box",
     display: "grid",
     gridTemplateColumns: `repeat(${layout.columns}, ${settings.sizeIn}in)`,
@@ -298,9 +298,9 @@ export function BadgeSheet({
         <div
           style={{
             position: "absolute",
-            left: `${settings.marginIn}in`,
-            right: `${settings.marginIn}in`,
-            bottom: `${Math.max(0.12, settings.marginIn * 0.5)}in`,
+            left: `${layout.marginIn}in`,
+            right: `${layout.marginIn}in`,
+            bottom: `${Math.max(0.12, layout.marginIn * 0.5)}in`,
             textAlign: "center",
             font: "500 0.12in ui-sans-serif, system-ui, sans-serif",
             color: "#9aa0a6",
