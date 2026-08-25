@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+        <title>Image Print Preview - Kids Edition</title>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
+        <style>
+            :root {
+                --background: #121212;
+                --foreground: #ffffff;
+                --accent: #ff9800;
+                --dropzone-bg: #1e1e1e;
+                --dropzone-border: #4caf50;
+                --hover-bg: #2e2e2e;
+            }
+
+            body {
+                margin: 0;
+                padding: 0;
+                font-family: "Comic Sans MS", cursive, sans-serif;
+                text-align: center;
+                background-color: var(--background);
+                color: var(--foreground);
+            }
+            .container {
+                max-width: 900px;
+                margin: auto;
+                padding: 20px;
+            }
+            h1 {
+                color: var(--accent);
+                font-size: 28px;
+            }
+            .drop-zone {
+                border: 4px dashed var(--dropzone-border);
+                padding: 30px;
+                margin: 20px auto;
+                width: 80%;
+                background-color: var(--dropzone-bg);
+                cursor: pointer;
+                border-radius: 15px;
+                transition: 0.3s;
+                color: var(--foreground);
+            }
+            .drop-zone:hover {
+                background-color: var(--hover-bg);
+            }
+            .controls {
+                margin: 20px;
+            }
+            select {
+                padding: 10px;
+                font-size: 16px;
+                margin: 0 10px;
+            }
+            button {
+                padding: 15px 25px;
+                font-size: 18px;
+                border-radius: 10px;
+                border: none;
+                cursor: pointer;
+                transition: 0.3s;
+            }
+            .download-btn {
+                background-color: #f44336;
+                color: white;
+            }
+            .download-btn:hover {
+                background-color: #d32f2f;
+            }
+            .paper {
+                width: 8.5in;
+                height: 11in;
+                background: white;
+                display: grid;
+                gap: 10px;
+                margin: 20px auto;
+                padding: 20px;
+                border-radius: 10px;
+                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+                position: relative;
+            }
+            img {
+                display: block;
+                margin: auto;
+                border-radius: 10px;
+                width: auto;
+                height: auto;
+                max-width: 100%;
+                max-height: 100%;
+            }
+            .hidden {
+                display: none;
+            }
+        </style>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    </head>
+    <body>
+        <div class="container">
+            <h1>🖼️ Fun Print Preview! 🎨</h1>
+            <div class="controls">
+                <label for="sizeSelect">Size:</label>
+                <select id="sizeSelect">
+                    <option value="1">1 inch</option>
+                    <option value="2">2 inch</option>
+                    <option value="3" selected>3 inch</option>
+                </select>
+                <label for="columnSelect">Columns:</label>
+                <select id="columnSelect">
+                    <option value="2" selected>2 columns</option>
+                    <option value="3">3 columns</option>
+                    <option value="4">4 columns</option>
+                </select>
+            </div>
+            <div class="drop-zone" id="dropZone">📤 Drop images here, paste (Cmd+V), or click to upload</div>
+            <input type="file" id="fileInput" multiple accept="image/*" class="hidden" />
+            <button id="downloadBtn" class="hidden download-btn" onclick="downloadAndOpenGmail()">📥 Download & Open Gmail</button>
+            <div id="pages-container"></div>
+        </div>
+        <script>
+            const dropZone = document.getElementById("dropZone");
+            const fileInput = document.getElementById("fileInput");
+            const pagesContainer = document.getElementById("pages-container");
+            const downloadBtn = document.getElementById("downloadBtn");
+            const sizeSelect = document.getElementById("sizeSelect");
+            const columnSelect = document.getElementById("columnSelect");
+
+            let images = [];
+
+            dropZone.addEventListener("click", () => fileInput.click());
+            dropZone.addEventListener("dragover", e => {
+                e.preventDefault();
+                dropZone.style.borderColor = "blue";
+            });
+            dropZone.addEventListener("drop", e => {
+                e.preventDefault();
+                dropZone.style.borderColor = "#4caf50";
+                handleFiles(e.dataTransfer.files);
+            });
+            document.addEventListener("paste", e => {
+                const items = e.clipboardData.items;
+                let files = [];
+                for (let i = 0; i < items.length; i++) {
+                    if (items[i].type.indexOf("image") !== -1) {
+                        files.push(items[i].getAsFile());
+                    }
+                }
+                handleFiles(files);
+            });
+            fileInput.addEventListener("change", e => handleFiles(e.target.files));
+
+            function handleFiles(files) {
+                if (!files.length) return;
+                for (let i = 0; i < files.length; i++) {
+                    images.push(URL.createObjectURL(files[i]));
+                }
+                createPages();
+            }
+
+            function createPages() {
+                pagesContainer.innerHTML = "";
+                const size = parseInt(sizeSelect.value);
+                const columns = parseInt(columnSelect.value);
+                const maxPerPage = columns * 3;
+                let totalPages = Math.ceil(images.length / maxPerPage);
+
+                for (let i = 0; i < totalPages; i++) {
+                    let page = document.createElement("div");
+                    page.classList.add("paper");
+                    page.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
+                    page.style.gridTemplateRows = `repeat(3, 1fr)`;
+                    for (let j = i * maxPerPage; j < (i + 1) * maxPerPage; j++) {
+                        if (images[j]) {
+                            let img = document.createElement("img");
+                            img.src = images[j];
+                            img.style.maxWidth = `${size}in`;
+                            img.style.maxHeight = `${size}in`;
+                            page.appendChild(img);
+                        }
+                    }
+                    pagesContainer.appendChild(page);
+                }
+                dropZone.classList.add("hidden");
+                downloadBtn.classList.remove("hidden");
+            }
+
+            async function downloadAndOpenGmail() {
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF("p", "in", [8.5, 11]);
+                const pages = document.querySelectorAll(".paper");
+                for (let i = 0; i < pages.length; i++) {
+                    if (i > 0) pdf.addPage();
+                    let canvas = await html2canvas(pages[i], { scale: 1.5 });
+                    let imgData = canvas.toDataURL("image/jpeg", 0.7);
+                    pdf.addImage(imgData, "JPEG", 0, 0, 8.5, 11);
+                }
+                pdf.save("fun-images.pdf");
+                setTimeout(() => {
+                    window.open("https://mail.google.com/mail/u/0/?view=cm&fs=1&tf=1", "_blank");
+                }, 1000);
+            }
+        </script>
+    </body>
+</html>

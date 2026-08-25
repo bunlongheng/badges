@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Badge Print Preview - 2.125" 4 Columns</title>
+        <style>
+            body {
+                margin: 0;
+                padding: 0;
+                font-family: Arial, sans-serif;
+                text-align: center;
+                background-color: #121212;
+                color: white;
+            }
+            .container {
+                max-width: 900px;
+                margin: auto;
+                padding: 20px;
+            }
+            h1 {
+                color: #ff9800;
+                font-size: 28px;
+            }
+            .drop-zone {
+                border: 4px dashed #4caf50;
+                padding: 30px;
+                margin: 20px auto;
+                width: 80%;
+                background-color: #1e1e1e;
+                cursor: pointer;
+                border-radius: 15px;
+            }
+            button {
+                padding: 15px 25px;
+                font-size: 18px;
+                border-radius: 10px;
+                border: none;
+                cursor: pointer;
+                background-color: #f44336;
+                color: white;
+                margin-top: 20px;
+            }
+            .paper {
+                width: 8.5in;
+                height: 11in;
+                background: white;
+                display: grid;
+                grid-template-columns: repeat(4, 2.125in);
+                grid-template-rows: repeat(5, 2.125in);
+                margin: 20px auto;
+                padding: 0;
+            }
+            .badge-container {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 100%;
+                width: 100%;
+                overflow: hidden;
+                border: 1px solid #eee; /* Optional: visual guide during setup */
+            }
+            img {
+                width: 2.125in;
+                height: 2.125in;
+                object-fit: contain;
+            }
+            .hidden {
+                display: none;
+            }
+        </style>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    </head>
+    <body>
+        <div class="container">
+            <h1>🖼️ Badge Print Preview (2.125" 4 columns)</h1>
+            <div class="drop-zone" id="dropZone">📤 Drop images here or click to upload</div>
+            <input type="file" id="fileInput" multiple accept="image/*" class="hidden" />
+            <button id="downloadBtn" class="hidden" onclick="downloadPDF()">📥 Download PDF</button>
+            <div id="pages-container"></div>
+        </div>
+
+        <script>
+            const dropZone = document.getElementById("dropZone");
+            const fileInput = document.getElementById("fileInput");
+            const pagesContainer = document.getElementById("pages-container");
+            const downloadBtn = document.getElementById("downloadBtn");
+            let images = [];
+
+            // Event handlers
+            dropZone.addEventListener("click", () => fileInput.click());
+            dropZone.addEventListener("dragover", e => e.preventDefault());
+            dropZone.addEventListener("drop", e => {
+                e.preventDefault();
+                handleFiles(e.dataTransfer.files);
+            });
+            fileInput.addEventListener("change", e => handleFiles(e.target.files));
+
+            function handleFiles(files) {
+                if (!files.length) return;
+                for (let file of files) {
+                    images.push(URL.createObjectURL(file));
+                }
+                renderPages();
+            }
+
+            function renderPages() {
+                pagesContainer.innerHTML = "";
+                const badgesPerPage = 20; // 4 columns × 5 rows
+
+                for (let i = 0; i < Math.ceil(images.length / badgesPerPage); i++) {
+                    const page = document.createElement("div");
+                    page.className = "paper";
+
+                    for (let j = 0; j < badgesPerPage; j++) {
+                        const index = i * badgesPerPage + j;
+                        if (index >= images.length) break;
+
+                        const container = document.createElement("div");
+                        container.className = "badge-container";
+
+                        const img = document.createElement("img");
+                        img.src = images[index];
+                        container.appendChild(img);
+                        page.appendChild(container);
+                    }
+                    pagesContainer.appendChild(page);
+                }
+
+                dropZone.classList.add("hidden");
+                downloadBtn.classList.remove("hidden");
+            }
+
+            async function downloadPDF() {
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF("p", "in", [8.5, 11]);
+                const pages = document.querySelectorAll(".paper");
+
+                for (let i = 0; i < pages.length; i++) {
+                    if (i > 0) pdf.addPage();
+                    const canvas = await html2canvas(pages[i], {
+                        scale: 2,
+                        logging: false,
+                        useCORS: true,
+                    });
+                    pdf.addImage(canvas.toDataURL("image/jpeg"), "JPEG", 0, 0, 8.5, 11);
+                }
+
+                pdf.save("badges.pdf");
+            }
+        </script>
+    </body>
+</html>

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+        <title>Cyberpunk Print Preview</title>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
+        <style>
+            body {
+                margin: 0;
+                padding: 0;
+                font-family: "Orbitron", sans-serif;
+                text-align: center;
+                background-color: #0d0d0d;
+                color: #00ffcc;
+                overflow-x: hidden;
+            }
+            .container {
+                max-width: 900px;
+                margin: auto;
+                padding: 20px;
+            }
+            h1 {
+                font-size: 32px;
+                text-transform: uppercase;
+                text-shadow: 0 0 15px #00ffcc;
+            }
+            .drop-zone {
+                border: 2px dashed #00ffcc;
+                padding: 30px;
+                margin: 20px auto;
+                width: 80%;
+                background-color: #111;
+                cursor: pointer;
+                border-radius: 10px;
+                transition: 0.3s;
+                box-shadow: 0 0 15px rgba(0, 255, 204, 0.5);
+            }
+            .drop-zone:hover {
+                background-color: #222;
+                box-shadow: 0 0 25px rgba(0, 255, 204, 0.8);
+            }
+            button {
+                padding: 15px 25px;
+                font-size: 18px;
+                border-radius: 10px;
+                border: none;
+                cursor: pointer;
+                transition: 0.3s;
+                font-family: "Orbitron", sans-serif;
+                text-transform: uppercase;
+            }
+            .download-btn {
+                background: linear-gradient(90deg, #00ffcc, #0066ff);
+                color: white;
+                box-shadow: 0 0 20px rgba(0, 255, 204, 0.8);
+            }
+            .download-btn:hover {
+                box-shadow: 0 0 35px rgba(0, 255, 204, 1);
+            }
+            .paper {
+                width: 8.5in;
+                height: 11in;
+                background: #222;
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                grid-template-rows: repeat(3, 1fr);
+                gap: 10px;
+                margin: 20px auto;
+                padding: 20px;
+                border-radius: 10px;
+                box-shadow: 0 0 25px rgba(0, 255, 204, 0.7);
+                position: relative;
+            }
+            img {
+                max-width: 3.5in;
+                max-height: 3.5in;
+                display: block;
+                margin: auto;
+                border-radius: 10px;
+            }
+            .hidden {
+                display: none;
+            }
+        </style>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+        <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet" />
+    </head>
+    <body>
+        <div class="container">
+            <h1>Cyberpunk Print Preview</h1>
+            <div class="drop-zone" id="dropZone">⚡ Drop images here, paste (Cmd+V), or click to upload ⚡</div>
+            <input type="file" id="fileInput" multiple accept="image/*" class="hidden" />
+            <button id="downloadBtn" class="hidden download-btn" onclick="downloadAndOpenGmail()">⚡ Download & Open Gmail</button>
+            <div id="pages-container"></div>
+        </div>
+        <script>
+            const dropZone = document.getElementById("dropZone");
+            const fileInput = document.getElementById("fileInput");
+            const pagesContainer = document.getElementById("pages-container");
+            const downloadBtn = document.getElementById("downloadBtn");
+            let images = [];
+
+            dropZone.addEventListener("click", () => fileInput.click());
+            dropZone.addEventListener("dragover", e => {
+                e.preventDefault();
+                dropZone.style.borderColor = "cyan";
+            });
+            dropZone.addEventListener("drop", e => {
+                e.preventDefault();
+                dropZone.style.borderColor = "#00ffcc";
+                handleFiles(e.dataTransfer.files);
+            });
+            document.addEventListener("paste", e => {
+                const items = e.clipboardData.items;
+                let files = [];
+                for (let i = 0; i < items.length; i++) {
+                    if (items[i].type.indexOf("image") !== -1) {
+                        files.push(items[i].getAsFile());
+                    }
+                }
+                handleFiles(files);
+            });
+            fileInput.addEventListener("change", e => handleFiles(e.target.files));
+
+            function handleFiles(files) {
+                if (!files.length) return;
+                for (let i = 0; i < files.length; i++) {
+                    images.push(URL.createObjectURL(files[i]));
+                }
+                createPages();
+            }
+
+            function createPages() {
+                pagesContainer.innerHTML = "";
+                let totalPages = Math.ceil(images.length / 6);
+                for (let i = 0; i < totalPages; i++) {
+                    let page = document.createElement("div");
+                    page.classList.add("paper");
+                    for (let j = i * 6; j < (i + 1) * 6; j++) {
+                        if (images[j]) {
+                            let img = document.createElement("img");
+                            img.src = images[j];
+                            page.appendChild(img);
+                        }
+                    }
+                    pagesContainer.appendChild(page);
+                }
+                dropZone.classList.add("hidden");
+                downloadBtn.classList.remove("hidden");
+            }
+
+            function downloadAndOpenGmail() {
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF("p", "in", [8.5, 11]);
+                const pages = document.querySelectorAll(".paper");
+
+                const emailTo = "recipient@example.com";
+                const emailCC = "cc@example.com";
+                const emailTitle = "Badges";
+                const emailBody = "Thank you! ❤️";
+
+                pages.forEach((page, index) => {
+                    if (index > 0) pdf.addPage();
+                    html2canvas(page, { scale: 1.5 }).then(canvas => {
+                        pdf.addImage(canvas.toDataURL("image/jpeg", 0.7), "JPEG", 0, 0, 8.5, 11);
+                        if (index === pages.length - 1) {
+                            pdf.save("cyberpunk-print.pdf");
+
+                            const gmailUrl = `https://mail.google.com/mail/u/0/?view=cm&fs=1&to=${encodeURIComponent(emailTo)}&cc=${encodeURIComponent(emailCC)}&su=${encodeURIComponent(emailTitle)}&body=${encodeURIComponent(emailBody)}`;
+
+                            setTimeout(() => {
+                                window.open(gmailUrl, "_blank");
+                            }, 1000);
+                        }
+                    });
+                });
+            }
+        </script>
+    </body>
+</html>

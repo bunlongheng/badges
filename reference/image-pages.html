@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
+        <title>Image Print Preview</title>
+        <style>
+            body {
+                margin: 0;
+                padding: 0;
+                font-family: Arial, sans-serif;
+                text-align: center;
+                background-color: #f5f5f5;
+            }
+            .paper {
+                width: 8.5in;
+                height: 11in;
+                border: 2px solid #000;
+                background-color: white;
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                grid-template-rows: repeat(3, 1fr);
+                gap: 10px;
+                margin: 10px auto;
+                padding: 10px;
+                page-break-after: always;
+                position: relative;
+            }
+            img {
+                width: auto;
+                height: auto;
+                max-width: 3.5in;
+                max-height: 3.5in;
+                object-fit: contain;
+                display: block;
+                margin: auto;
+            }
+            .drop-zone {
+                border: 2px dashed #aaa;
+                padding: 20px;
+                margin: 20px auto;
+                width: 80%;
+                background-color: #fff;
+                cursor: pointer;
+            }
+            button {
+                padding: 10px 20px;
+                font-size: 16px;
+                margin: 10px;
+                cursor: pointer;
+            }
+            .hidden {
+                display: none;
+            }
+            .download-btn {
+                background-color: #28a745;
+                color: white;
+                border: none;
+                border-radius: 5px;
+            }
+            .download-btn:hover {
+                background-color: #218838;
+            }
+            .download-btn i {
+                margin-right: 5px;
+            }
+        </style>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    </head>
+    <body>
+        <h1 id="title">Image Print Preview</h1>
+        <button id="downloadBtn" class="hidden download-btn" onclick="downloadPDF()"> <i class="fas fa-cloud-download-alt"></i> Download PDF </button>
+        <div class="drop-zone" id="dropZone">Drop images here, paste (Cmd+V), or click to upload</div>
+        <input type="file" id="fileInput" multiple accept="image/*" class="hidden" />
+        <div id="pages-container"></div>
+        <script>
+            const dropZone = document.getElementById("dropZone");
+            const fileInput = document.getElementById("fileInput");
+            const pagesContainer = document.getElementById("pages-container");
+            const downloadBtn = document.getElementById("downloadBtn");
+            const title = document.getElementById("title");
+            const imagesPerPage = 6;
+            let images = [];
+
+            dropZone.addEventListener("click", () => fileInput.click());
+            dropZone.addEventListener("dragover", e => {
+                e.preventDefault();
+                dropZone.style.borderColor = "blue";
+            });
+            dropZone.addEventListener("dragleave", () => {
+                dropZone.style.borderColor = "#aaa";
+            });
+            dropZone.addEventListener("drop", e => {
+                e.preventDefault();
+                dropZone.style.borderColor = "#aaa";
+                handleFiles(e.dataTransfer.files);
+            });
+            document.addEventListener("paste", e => {
+                const items = e.clipboardData.items;
+                let files = [];
+                for (let i = 0; i < items.length; i++) {
+                    if (items[i].type.indexOf("image") !== -1) {
+                        files.push(items[i].getAsFile());
+                    }
+                }
+                handleFiles(files);
+            });
+            fileInput.addEventListener("change", e => handleFiles(e.target.files));
+
+            function handleFiles(files) {
+                if (!files.length) return;
+                for (let i = 0; i < files.length; i++) {
+                    images.push(URL.createObjectURL(files[i]));
+                }
+                createPages();
+            }
+
+            function createPages() {
+                pagesContainer.innerHTML = "";
+                let totalPages = Math.ceil(images.length / imagesPerPage);
+                for (let i = 0; i < totalPages; i++) {
+                    let page = document.createElement("div");
+                    page.classList.add("paper");
+                    for (let j = i * imagesPerPage; j < (i + 1) * imagesPerPage; j++) {
+                        if (images[j]) {
+                            let img = document.createElement("img");
+                            img.src = images[j];
+                            page.appendChild(img);
+                        }
+                    }
+                    pagesContainer.appendChild(page);
+                }
+                dropZone.classList.add("hidden");
+                downloadBtn.classList.remove("hidden");
+                title.classList.add("hidden");
+            }
+
+            async function downloadPDF() {
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF("p", "in", [8.5, 11]);
+                const pages = document.querySelectorAll(".paper");
+                for (let i = 0; i < pages.length; i++) {
+                    if (i > 0) pdf.addPage();
+                    let canvas = await html2canvas(pages[i], { scale: 1.5 });
+                    let imgData = canvas.toDataURL("image/jpeg", 0.7);
+                    pdf.addImage(imgData, "JPEG", 0, 0, 8.5, 11);
+                }
+                pdf.save("images.pdf");
+            }
+        </script>
+    </body>
+</html>
