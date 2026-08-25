@@ -138,10 +138,12 @@ export function BadgeSheet({
     boxSizing: "border-box",
     display: "grid",
     gridTemplateColumns: `repeat(${layout.columns}, ${settings.sizeIn}in)`,
-    gridAutoRows: `${settings.sizeIn}in`,
-    gap: `${settings.gapIn}in`,
-    justifyContent: "center",
-    alignContent: "start",
+    gridTemplateRows: `repeat(${layout.rows}, ${settings.sizeIn}in)`,
+    gap: 0,
+    // Spread the badges evenly across the whole safe area (even quadrants), so
+    // leftover space becomes even margins instead of empty bottom space.
+    justifyContent: "space-evenly",
+    alignContent: "space-evenly",
     transform: `scale(${scale})`,
     transformOrigin: "top left",
     boxShadow: "0 10px 30px rgba(0,0,0,0.15)",

@@ -127,11 +127,11 @@ export async function exportPdf(
   const orientation = paperW > paperH ? "landscape" : "portrait";
   const pdf = new jsPDF({ orientation, unit: "in", format: [paperW, paperH] });
 
-  const gap = settings.gapIn;
-  const gridW = columns * cellIn + (columns - 1) * gap;
-  const gridH = rows * cellIn + (rows - 1) * gap;
-  const startX = layout.marginIn + (paperW - layout.marginIn * 2 - gridW) / 2;
-  const startY = layout.marginIn + Math.max(0, (paperH - layout.marginIn * 2 - gridH) / 2) * 0; // top-aligned
+  // Spread badges evenly across the safe area (matches the on-screen space-evenly).
+  const usableW = paperW - layout.marginIn * 2;
+  const usableH = paperH - layout.marginIn * 2;
+  const gapX = Math.max(0, (usableW - columns * cellIn) / (columns + 1));
+  const gapY = Math.max(0, (usableH - rows * cellIn) / (rows + 1));
 
   for (let p = 0; p < pages.length; p++) {
     if (p > 0) pdf.addPage([paperW, paperH], orientation);
@@ -152,8 +152,8 @@ export async function exportPdf(
       if (!img) continue;
       const col = idx % columns;
       const row = Math.floor(idx / columns);
-      const x = startX + col * (cellIn + gap);
-      const y = startY + row * (cellIn + gap);
+      const x = layout.marginIn + gapX * (col + 1) + cellIn * col;
+      const y = layout.marginIn + gapY * (row + 1) + cellIn * row;
 
       const el = await loadImage(img.url);
       const canvas = renderBadge(el, idx, settings, img.offsetX, img.offsetY);
