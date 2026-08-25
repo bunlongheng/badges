@@ -64,13 +64,15 @@ describe("ImageTray", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("removes an image", async () => {
+  it("removes an image after selecting it", async () => {
     const onRemove = vi.fn();
     render(
       <ImageTray images={imgs} onRemove={onRemove} onMove={vi.fn()} onClear={vi.fn()} />
     );
-    const removeButtons = screen.getAllByLabelText("Remove image");
-    await userEvent.click(removeButtons[0]);
+    // delete only appears after tapping the photo to select it
+    expect(screen.queryByLabelText("Remove image")).toBeNull();
+    await userEvent.click(screen.getByAltText("one"));
+    await userEvent.click(screen.getByLabelText("Remove image"));
     expect(onRemove).toHaveBeenCalledWith("1");
   });
 

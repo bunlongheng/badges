@@ -68,8 +68,8 @@ export const DEFAULT_SETTINGS: Settings = {
   sizeIn: SIZE_LARGE_IN,
   columns: 3, // unused - layout auto-maximizes
   gapIn: 0, // touch, so we fit the most badges per page
-  marginIn: 0.25, // fallback when marginAuto is off
-  marginAuto: true, // auto-fit the most badges with a safe border
+  marginIn: 0.25, // default: a fixed 0.25" safe border (badges spread evenly)
+  marginAuto: false,
   shape: "circle",
   fit: "cover",
   style: "plain",
