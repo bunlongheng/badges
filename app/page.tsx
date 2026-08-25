@@ -2,11 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Header } from "@/components/Header";
-import { DropZone } from "@/components/DropZone";
 import { Controls } from "@/components/Controls";
 import { ImageTray } from "@/components/ImageTray";
 import { BadgeSheet } from "@/components/BadgeSheet";
 import { Converting } from "@/components/Converting";
+import { Aurora } from "@/components/Aurora";
 import { useImages } from "@/lib/useImages";
 import { useSettings } from "@/lib/useSettings";
 import { useMeasure } from "@/lib/useMeasure";
@@ -147,6 +147,21 @@ export default function Home() {
     }
   }, [pages, images, layout, settings, caption, pdfName]);
 
+  const loadSamples = useCallback(async () => {
+    try {
+      const files = await Promise.all(
+        ["s1", "s2", "s3", "s4", "s5", "s6"].map(async (n) => {
+          const res = await fetch(`/samples/${n}.jpg`);
+          const blob = await res.blob();
+          return new File([blob], `${n}.jpg`, { type: "image/jpeg" });
+        })
+      );
+      add(files);
+    } catch {
+      // ignore fetch failures
+    }
+  }, [add]);
+
   const hasImages = images.length > 0;
 
   return (
@@ -226,14 +241,122 @@ export default function Home() {
 
       <main className="mx-auto max-w-[1800px] px-3 py-6 sm:px-4">
         {!hasImages ? (
-          <section className="mx-auto max-w-2xl py-24">
-            <DropZone onFiles={add} />
-            {converting > 0 && (
-              <div className="mt-5 flex justify-center">
-                <Converting count={converting} />
+          <>
+            <Aurora />
+            <section className="relative mx-auto flex min-h-[calc(100vh-9rem)] max-w-3xl flex-col items-center justify-center py-10 text-center">
+              <div className="float-in">
+                <svg
+                  width="34"
+                  height="34"
+                  viewBox="0 0 24 24"
+                  className="mx-auto text-brand-500 anim-glow rounded-full"
+                  fill="currentColor"
+                  aria-hidden="true"
+                >
+                  <path d="M12 2l1.9 5.6a3 3 0 0 0 1.9 1.9L21.5 11.5l-5.6 1.9a3 3 0 0 0-1.9 1.9L12 21l-1.9-5.6a3 3 0 0 0-1.9-1.9L2.5 11.5l5.6-1.9a3 3 0 0 0 1.9-1.9L12 2z" />
+                </svg>
+                <h1 className="mt-3 bg-gradient-to-b from-zinc-900 to-zinc-600 bg-clip-text text-4xl font-extrabold tracking-tight text-transparent sm:text-5xl">
+                  Create your badges
+                </h1>
+                <p className="mt-2 text-zinc-500">
+                  Turn any image into a print-ready badge in seconds
+                </p>
               </div>
-            )}
-          </section>
+
+              <button
+                type="button"
+                onClick={() => addInputRef.current?.click()}
+                style={{ animationDelay: "0.08s" }}
+                className="float-in group mt-8 w-full rounded-3xl border border-white/70 bg-white/60 p-8 shadow-xl shadow-indigo-200/40 backdrop-blur transition hover:border-brand-300 hover:shadow-indigo-300/50 sm:p-10"
+              >
+                <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-brand-100 text-brand-600 transition group-hover:scale-105">
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 16V4M12 4l-4 4M12 4l4 4" />
+                    <path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+                  </svg>
+                </span>
+                <div className="mt-4 text-xl font-semibold text-zinc-900">Drop your images here</div>
+                <div className="mt-1 text-sm text-zinc-500">
+                  or click to <span className="font-medium text-brand-600">browse your files</span>
+                </div>
+                <span className="mt-5 inline-flex h-11 items-center gap-2 rounded-xl bg-brand-600 px-6 text-sm font-semibold text-white shadow-lg shadow-brand-600/25 transition group-hover:bg-brand-700">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                    <circle cx="9" cy="9" r="2" />
+                    <path d="M21 15l-5-5L5 21" />
+                  </svg>
+                  Choose Images
+                </span>
+                <div className="mt-4 text-xs text-zinc-400">
+                  PNG · JPG · HEIC · WEBP — 100% private, in your browser
+                </div>
+              </button>
+
+              {converting > 0 && (
+                <div className="float-in mt-5">
+                  <Converting count={converting} />
+                </div>
+              )}
+
+              <div className="float-in mt-9" style={{ animationDelay: "0.16s" }}>
+                <p className="text-sm text-zinc-400">Or try an example</p>
+                <div className="mt-3 flex justify-center gap-3">
+                  {["s1", "s2", "s3"].map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={loadSamples}
+                      className="h-20 w-28 overflow-hidden rounded-xl border border-white/70 shadow-md transition hover:-translate-y-1 hover:shadow-xl"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={`/samples/${s}.jpg`} alt="Sample" className="h-full w-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div
+                className="float-in mt-10 flex w-full max-w-lg items-center justify-between rounded-2xl border border-white/70 bg-white/60 px-6 py-4 backdrop-blur"
+                style={{ animationDelay: "0.24s" }}
+              >
+                {[
+                  { n: 1, t: "Upload", d: "Add your images" },
+                  { n: 2, t: "Customize", d: "Size, shape, layout" },
+                  { n: 3, t: "Export", d: "Print or PDF" },
+                ].map((step, i) => (
+                  <div key={step.n} className="flex flex-1 items-center">
+                    <div className="flex flex-col items-center text-center">
+                      <span
+                        className={[
+                          "flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold",
+                          step.n === 1
+                            ? "bg-brand-600 text-white"
+                            : "border border-zinc-300 text-zinc-400",
+                        ].join(" ")}
+                      >
+                        {step.n}
+                      </span>
+                      <div className="mt-1.5 text-xs font-semibold text-zinc-700">{step.t}</div>
+                      <div className="hidden text-[11px] text-zinc-400 sm:block">{step.d}</div>
+                    </div>
+                    {i < 2 && <div className="mx-2 h-px flex-1 border-t border-dashed border-zinc-300" />}
+                  </div>
+                ))}
+              </div>
+
+              <input
+                ref={addInputRef}
+                type="file"
+                accept="image/*,.heic,.heif,.HEIC,.HEIF,image/heic,image/heif"
+                multiple
+                className="hidden"
+                onChange={(e) => {
+                  if (e.target.files) add(e.target.files);
+                  e.target.value = "";
+                }}
+              />
+            </section>
+          </>
         ) : (
           <div className="grid items-start gap-5 lg:grid-cols-[360px_1fr_300px]">
             {/* Left panel: images */}

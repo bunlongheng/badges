@@ -39,9 +39,7 @@ Turn any images into print-ready badge, button, and sticker sheets - drop, size,
 - **Light & dark mode**, with settings persisted locally
 - **Privacy-first** - all processing happens in the browser, no server, no upload
 
-|  |  |
-| --- | --- |
-| ![Circle + kids style](docs/screenshots/circle-kids.png) | ![Dark mode, neon style](docs/screenshots/dark.png) |
+![Badge studio](docs/screenshots/studio.png)
 
 ## Architecture
 

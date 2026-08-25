@@ -154,6 +154,30 @@ input[type="range"]::-moz-range-thumb {
   }
 }
 
+/* ---- Aurora background (futuristic landing) ---- */
+@keyframes aurora-a {
+  0%, 100% { transform: translate(-8%, -6%) scale(1); }
+  50% { transform: translate(12%, 14%) scale(1.25); }
+}
+@keyframes aurora-b {
+  0%, 100% { transform: translate(10%, -4%) scale(1.1); }
+  50% { transform: translate(-14%, 12%) scale(0.9); }
+}
+@keyframes aurora-c {
+  0%, 100% { transform: translate(-6%, 10%) scale(1); }
+  50% { transform: translate(14%, -12%) scale(1.2); }
+}
+@keyframes aurora-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes float-in {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.float-in {
+  animation: float-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 /* ---- Print ---- */
 @media print {
   @page {
