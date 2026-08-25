@@ -30,7 +30,7 @@ export function ImageTray({
       <div className="flex items-center justify-between">
         <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
           {images.length} image{images.length === 1 ? "" : "s"}
-          <span className="ml-1 font-normal normal-case text-zinc-400">· drag to reorder</span>
+          <span className="ml-1 font-normal normal-case text-zinc-400">· tap ‹ › or drag</span>
         </h2>
         <button
           type="button"
@@ -57,11 +57,9 @@ export function ImageTray({
               setOver(null);
             }}
             className={[
-              "anim-pop group relative aspect-square cursor-grab overflow-hidden rounded-lg border bg-zinc-100 transition active:cursor-grabbing",
+              "group relative aspect-square overflow-hidden rounded-lg border bg-zinc-100 transition lg:cursor-grab",
               drag === i ? "scale-95 opacity-40" : "opacity-100",
-              over === i && drag !== i
-                ? "border-brand-500 ring-2 ring-brand-500"
-                : "border-zinc-200",
+              over === i && drag !== i ? "border-brand-500 ring-2 ring-brand-500" : "border-zinc-200",
             ].join(" ")}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -71,17 +69,43 @@ export function ImageTray({
               draggable={false}
               className="pointer-events-none h-full w-full object-cover"
             />
-            <span className="absolute left-1 top-1 rounded bg-black/55 px-1.5 text-[10px] font-semibold text-white opacity-0 transition group-hover:opacity-100">
+
+            {/* index */}
+            <span className="pointer-events-none absolute left-1 top-1 rounded bg-black/55 px-1.5 text-[10px] font-semibold text-white">
               {i + 1}
             </span>
+
+            {/* delete - always tappable (works on touch) */}
             <button
               type="button"
               onClick={() => onRemove(img.id)}
               aria-label="Remove image"
-              className="absolute right-1 top-1 rounded-full bg-red-500 px-1.5 text-xs font-bold leading-5 text-white opacity-0 transition group-hover:opacity-100"
+              className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-sm font-bold leading-none text-white shadow active:scale-90"
             >
               ×
             </button>
+
+            {/* reorder - tap on touch (drag also works on desktop) */}
+            <div className="absolute inset-x-0 bottom-0 flex justify-between p-1">
+              <button
+                type="button"
+                onClick={() => onMove(i, i - 1)}
+                disabled={i === 0}
+                aria-label="Move earlier"
+                className="flex h-6 w-6 items-center justify-center rounded-full bg-black/55 text-white active:scale-90 disabled:opacity-0"
+              >
+                ‹
+              </button>
+              <button
+                type="button"
+                onClick={() => onMove(i, i + 1)}
+                disabled={i === images.length - 1}
+                aria-label="Move later"
+                className="flex h-6 w-6 items-center justify-center rounded-full bg-black/55 text-white active:scale-90 disabled:opacity-0"
+              >
+                ›
+              </button>
+            </div>
           </li>
         ))}
       </ul>
