@@ -23,6 +23,7 @@ export default function Home() {
   const addInputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [flash, setFlash] = useState(0);
+  const [mobileOpen, setMobileOpen] = useState(false); // phone: settings + photos drawer
   const [drag, setDrag] = useState<{ active: boolean; count: number }>({
     active: false,
     count: 0,
@@ -392,9 +393,67 @@ export default function Home() {
             </section>
           </>
         ) : (
+          <>
+            <input
+              ref={addInputRef}
+              type="file"
+              accept="image/*,.heic,.heif,.HEIC,.HEIF,image/heic,image/heif"
+              multiple
+              className="hidden"
+              onChange={(e) => {
+                if (e.target.files) add(e.target.files);
+                e.target.value = "";
+              }}
+            />
+
+            {/* Phone: compact toolbar, preview shows immediately below */}
+            <div className="mb-3 flex items-center gap-2 lg:hidden">
+              <button
+                type="button"
+                onClick={() => addInputRef.current?.click()}
+                className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-dashed border-zinc-300 px-3 text-sm font-medium text-zinc-600"
+              >
+                <span className="text-base leading-none">+</span> Add
+              </button>
+              <button
+                type="button"
+                onClick={() => setMobileOpen((o) => !o)}
+                className="inline-flex h-10 flex-1 items-center justify-between rounded-xl border border-zinc-200 bg-white px-3.5 text-sm font-semibold text-zinc-700"
+              >
+                <span className="flex items-center gap-2">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="3" />
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                  </svg>
+                  Settings &amp; photos ({images.length})
+                </span>
+                <span className="text-zinc-400">{mobileOpen ? "▲" : "▾"}</span>
+              </button>
+            </div>
+            {converting > 0 && (
+              <div className="mb-3 lg:hidden">
+                <Converting count={converting} compact />
+              </div>
+            )}
+
+            {/* Phone: collapsible photos + controls */}
+            {mobileOpen && (
+              <div className="mb-4 space-y-4 lg:hidden">
+                <div className="rounded-2xl border border-zinc-200 bg-white p-4">
+                  <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                    Photos
+                  </h2>
+                  <ImageTray images={images} onRemove={remove} onMove={move} onClear={clear} />
+                </div>
+                <div className="rounded-2xl border border-zinc-200 bg-white p-4">
+                  <Controls settings={settings} update={update} reset={reset} />
+                </div>
+              </div>
+            )}
+
           <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[340px_minmax(0,1fr)_300px]">
-            {/* Left panel: images */}
-            <aside className="no-print order-1 rounded-2xl border border-zinc-200 bg-white p-4 lg:sticky lg:top-20">
+            {/* Left panel: images (desktop only) */}
+            <aside className="no-print hidden rounded-2xl border border-zinc-200 bg-white p-4 lg:sticky lg:top-20 lg:block">
               <div className="mb-3 flex items-center justify-between">
                 <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
                   Images
@@ -407,23 +466,12 @@ export default function Home() {
                   <span className="text-sm leading-none">+</span> Add
                 </button>
               </div>
-              <input
-                ref={addInputRef}
-                type="file"
-                accept="image/*,.heic,.heif,.HEIC,.HEIF,image/heic,image/heif"
-                multiple
-                className="hidden"
-                onChange={(e) => {
-                  if (e.target.files) add(e.target.files);
-                  e.target.value = "";
-                }}
-              />
               {converting > 0 && <Converting count={converting} compact />}
               <ImageTray images={images} onRemove={remove} onMove={move} onClear={clear} />
             </aside>
 
-            {/* Center panel: preview stage */}
-            <section className="order-3 overflow-x-auto rounded-2xl border border-zinc-300 bg-zinc-100 p-3 sm:p-4 lg:order-2">
+            {/* Center panel: preview stage (first on phone) */}
+            <section className="overflow-x-auto rounded-2xl border border-zinc-300 bg-zinc-100 p-3 sm:p-4 lg:order-2">
               <div ref={stageRef} className="print-root">
                 <div ref={sheetsRef} className="flex flex-col items-center gap-6">
                   {pages.map((page, i) => (
@@ -447,11 +495,12 @@ export default function Home() {
               </div>
             </section>
 
-            {/* Right panel: controls */}
-            <aside className="no-print order-2 rounded-2xl border border-zinc-200 bg-white p-4 lg:order-3 lg:sticky lg:top-20">
+            {/* Right panel: controls (desktop only) */}
+            <aside className="no-print hidden rounded-2xl border border-zinc-200 bg-white p-4 lg:order-3 lg:sticky lg:top-20 lg:block">
               <Controls settings={settings} update={update} reset={reset} />
             </aside>
           </div>
+          </>
         )}
       </main>
     </div>
