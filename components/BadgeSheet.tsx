@@ -4,8 +4,7 @@ import { useRef, useState, type CSSProperties, type PointerEvent } from "react";
 import type { BadgeImage } from "@/lib/useImages";
 import type { SheetLayout } from "@/lib/layout";
 import type { Settings } from "@/lib/presets";
-
-const KIDS_COLORS = ["#ff6b6b", "#ffd93d", "#6bcB77", "#4d96ff", "#c780fa", "#ff9f45"];
+import { extractName } from "@/lib/text";
 
 function cellRadius(size: number, shape: Settings["shape"]): string {
   if (shape === "circle") return "50%";
@@ -13,35 +12,16 @@ function cellRadius(size: number, shape: Settings["shape"]): string {
   return "0";
 }
 
-function frameStyle(index: number, size: number, settings: Settings): CSSProperties {
-  const radius = cellRadius(size, settings.shape);
-  const base: CSSProperties = {
+function frameStyle(size: number): CSSProperties {
+  // The grid cell is the TRUE badge size. It does NOT clip, so the dashed cut
+  // guide can extend 5% beyond it into the gap. The image gets its own clip layer.
+  return {
     width: `${size}in`,
     height: `${size}in`,
-    borderRadius: radius,
-    overflow: "hidden",
-    boxSizing: "border-box",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    background: "#ffffff",
   };
-  if (settings.style === "kids") {
-    return {
-      ...base,
-      border: `0.03in solid ${KIDS_COLORS[index % KIDS_COLORS.length]}`,
-      boxShadow: "0 0.02in 0.05in rgba(0,0,0,0.12)",
-    };
-  }
-  if (settings.style === "neon") {
-    return {
-      ...base,
-      background: "#0d0d0d",
-      border: "0.02in solid #00ffcc",
-      boxShadow: "0 0 0.08in rgba(0,255,204,0.55)",
-    };
-  }
-  return base;
 }
 
 export function BadgeSheet({
@@ -117,6 +97,10 @@ export function BadgeSheet({
   const pxH = layout.paperH * 96 * scale;
   const wrapStyle: CSSProperties = { width: pxW, height: pxH, position: "relative" };
 
+  // Rows actually needed for THIS page, so leftover space becomes even gaps
+  // (each image gets equal "land") instead of an empty band at the bottom.
+  const usedRows = Math.max(1, Math.ceil(page.length / layout.columns));
+
   // Ruler + grid (screen only) to prove the badges are true physical size.
   const R = 24; // ruler thickness in px
   const isCm = settings.rulerUnit === "cm";
@@ -138,7 +122,7 @@ export function BadgeSheet({
     boxSizing: "border-box",
     display: "grid",
     gridTemplateColumns: `repeat(${layout.columns}, ${settings.sizeIn}in)`,
-    gridTemplateRows: `repeat(${layout.rows}, ${settings.sizeIn}in)`,
+    gridTemplateRows: `repeat(${usedRows}, ${settings.sizeIn}in)`,
     gap: 0,
     // Spread the badges evenly across the whole safe area (even quadrants), so
     // leftover space becomes even margins instead of empty bottom space.
@@ -235,6 +219,12 @@ export function BadgeSheet({
         {page.map((imgIdx, i) => {
           const img = images[imgIdx];
           const active = !!img && activeId === img.id;
+          const borderColor =
+            settings.border === "black"
+              ? "#000000"
+              : settings.border === "auto"
+                ? img?.color ?? "#000000"
+                : undefined;
           return (
             <div
               key={i}
@@ -242,37 +232,91 @@ export function BadgeSheet({
               onPointerMove={onMove}
               onPointerUp={onUp}
               style={{
-                ...frameStyle(i, settings.sizeIn, settings),
+                ...frameStyle(settings.sizeIn),
                 position: "relative",
                 cursor: canPan && img ? (active ? "grabbing" : "grab") : "default",
                 touchAction: canPan ? "none" : undefined,
               }}
             >
-              {img ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={img.url}
-                  alt=""
-                  draggable={false}
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    objectFit: settings.fit,
-                    objectPosition: `${img.offsetX}% ${img.offsetY}%`,
-                    display: "block",
-                    pointerEvents: "none",
-                  }}
-                />
-              ) : null}
+              {/* Photo, clipped to the TRUE badge shape - it fills only up to the border. */}
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  borderRadius: radius,
+                  overflow: "hidden",
+                  background: "#ffffff",
+                }}
+              >
+                {img ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={img.url}
+                    alt=""
+                    draggable={false}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: settings.fit,
+                      objectPosition: `${img.offsetX}% ${img.offsetY}%`,
+                      display: "block",
+                      pointerEvents: "none",
+                    }}
+                  />
+                ) : null}
+              </div>
 
-              {/* Cut guide - drawn on top so it stays visible over a cover image */}
-              {settings.cutGuides && (
+              {/* Border = the true badge edge (e.g. 4.85 cm). Photo fills up to under it. */}
+              {borderColor && (
                 <div
                   style={{
                     position: "absolute",
                     inset: 0,
                     borderRadius: radius,
-                    border: "0.014in dashed #000000",
+                    border: `0.015in solid ${borderColor}`,
+                    pointerEvents: "none",
+                  }}
+                />
+              )}
+
+              {/* Extracted name: straight, bold, horizontal - easy for kids to read. */}
+              {settings.showNames && img && extractName(img.name) && (
+                <svg
+                  viewBox="0 0 100 100"
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    width: "100%",
+                    height: "100%",
+                    overflow: "visible",
+                    pointerEvents: "none",
+                  }}
+                >
+                  <text
+                    x={50}
+                    y={80}
+                    textAnchor="middle"
+                    fill="#000000"
+                    stroke="#ffffff"
+                    strokeWidth={settings.nameSize * 0.18}
+                    paintOrder="stroke"
+                    fontSize={settings.nameSize}
+                    fontWeight={800}
+                    style={{ fontFamily: "ui-sans-serif, system-ui, sans-serif" }}
+                  >
+                    {extractName(img.name)}
+                  </text>
+                </svg>
+              )}
+
+              {/* Cut guide: dashed line 5% BIGGER, sitting outside the border as a buffer. */}
+              {settings.cutGuides && (
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: `-${(settings.sizeIn * 0.025).toFixed(3)}in`,
+                    borderRadius: radius,
+                    border: "0.012in dashed #000000",
                     pointerEvents: "none",
                   }}
                 />
@@ -304,9 +348,9 @@ export function BadgeSheet({
             right: `${layout.marginIn}in`,
             bottom: `${Math.max(0.12, layout.marginIn * 0.5)}in`,
             textAlign: "center",
-            font: "500 0.12in ui-sans-serif, system-ui, sans-serif",
+            font: "500 0.085in ui-sans-serif, system-ui, sans-serif",
             color: "#9aa0a6",
-            letterSpacing: "0.01in",
+            letterSpacing: "0.005in",
           }}
         >
           {caption} · Page {pageIndex + 1} of {totalPages}

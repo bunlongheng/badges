@@ -22,22 +22,19 @@ describe("fitCount", () => {
 });
 
 describe("computeLayout", () => {
-  it("computes a grid that fits the paper and clamps columns", () => {
+  it("caps columns at 3 even when more would fit", () => {
     const s: Settings = { ...DEFAULT_SETTINGS, sizeIn: 2, columns: 8, gapIn: 0, marginIn: 0.25, marginAuto: false };
     const layout = computeLayout(s);
-    const paper = getPaper(s.paperId); // letter 8.5 x 11
-    const usableW = paper.w - 0.5; // 8.0
-    // max cols that fit = floor(8/2) = 4, so columns clamp from 8 -> 4
-    expect(layout.columns).toBe(4);
+    // 4 would fit (8/2) but we cap at 3
+    expect(layout.columns).toBe(3);
     expect(layout.rows).toBeGreaterThan(0);
     expect(layout.perPage).toBe(layout.columns * layout.rows);
-    expect(usableW).toBe(8);
   });
 
-  it("always maximizes columns to fill the safe zone (ignores the columns setting)", () => {
-    // 8" usable / 1" badges with no gap -> 8 columns, regardless of settings.columns
+  it("caps columns at 3 for small badges (never 4+ across)", () => {
+    // 8 would fit at 1" but the cap holds it to 3
     const s: Settings = { ...DEFAULT_SETTINGS, sizeIn: 1, columns: 3, gapIn: 0, marginIn: 0.25, marginAuto: false };
-    expect(computeLayout(s).columns).toBe(8);
+    expect(computeLayout(s).columns).toBe(3);
   });
 
   it("always keeps at least one column and row", () => {
@@ -49,7 +46,7 @@ describe("computeLayout", () => {
 });
 
 describe("autoSafeMargin", () => {
-  it("maximizes fit with a safe border (Large 6.8cm on Letter fits 3x4)", () => {
+  it("maximizes fit with a safe border (a 2.68in badge on Letter fits 3x4)", () => {
     const large = 6.8 / 2.54; // 2.677"
     const m = autoSafeMargin(8.5, 11, large, 0);
     expect(m).toBeGreaterThanOrEqual(0.13); // never below the safe minimum

@@ -1,8 +1,8 @@
 import type { BadgeImage } from "./useImages";
 import type { SheetLayout } from "./layout";
 import type { Settings } from "./presets";
+import { extractName } from "./text";
 
-const KIDS_COLORS = ["#ff6b6b", "#ffd93d", "#6bcB77", "#4d96ff", "#c780fa", "#ff9f45"];
 const DPI = 240; // plenty for a small badge; keeps file size sane
 const JPEG_QUALITY = 0.82;
 
@@ -35,10 +35,10 @@ function roundRectPath(ctx: CanvasRenderingContext2D, s: number, r: number) {
 /** Render one badge (image cropped to shape, with focal offset + style) to a canvas. */
 function renderBadge(
   img: HTMLImageElement,
-  index: number,
   settings: Settings,
   offsetX: number,
-  offsetY: number
+  offsetY: number,
+  autoColor?: string
 ): HTMLCanvasElement {
   const s = Math.round(settings.sizeIn * DPI);
   const canvas = document.createElement("canvas");
@@ -63,7 +63,7 @@ function renderBadge(
   }
 
   // Background.
-  ctx.fillStyle = settings.style === "neon" ? "#0d0d0d" : "#ffffff";
+  ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, s, s);
 
   // Draw the image with object-fit cover/contain + object-position offset.
@@ -87,11 +87,18 @@ function renderBadge(
   }
   ctx.restore();
 
-  // Style border.
-  if (settings.style === "kids" || settings.style === "neon") {
+  // Border around the badge (none / black / the photo's primary colour).
+  let strokeColor: string | null = null;
+  if (settings.border === "black") {
+    strokeColor = "#000000";
+  } else if (settings.border === "auto") {
+    strokeColor = autoColor ?? "#000000";
+  }
+  if (strokeColor) {
     ctx.save();
-    ctx.lineWidth = (settings.style === "neon" ? 0.02 : 0.03) * s;
-    ctx.strokeStyle = settings.style === "neon" ? "#00ffcc" : KIDS_COLORS[index % KIDS_COLORS.length];
+    ctx.lineWidth = 0.015 * s;
+    ctx.strokeStyle = strokeColor;
+    // Border sits at the TRUE badge edge (the photo fills up to under it).
     const inset = ctx.lineWidth / 2;
     if (settings.shape === "circle") {
       ctx.beginPath();
@@ -123,7 +130,7 @@ export async function exportPdf(
   filename = "badges.pdf"
 ): Promise<void> {
   const { jsPDF } = await import("jspdf");
-  const { paperW, paperH, columns, rows, cellIn } = layout;
+  const { paperW, paperH, columns, cellIn } = layout;
   const orientation = paperW > paperH ? "landscape" : "portrait";
   const pdf = new jsPDF({ orientation, unit: "in", format: [paperW, paperH] });
 
@@ -131,14 +138,16 @@ export async function exportPdf(
   const usableW = paperW - layout.marginIn * 2;
   const usableH = paperH - layout.marginIn * 2;
   const gapX = Math.max(0, (usableW - columns * cellIn) / (columns + 1));
-  const gapY = Math.max(0, (usableH - rows * cellIn) / (rows + 1));
 
   for (let p = 0; p < pages.length; p++) {
     if (p > 0) pdf.addPage([paperW, paperH], orientation);
     const cells = pages[p];
+    // Rows needed for THIS page, so leftover height becomes even gaps.
+    const pageRows = Math.max(1, Math.ceil(cells.length / columns));
+    const gapY = Math.max(0, (usableH - pageRows * cellIn) / (pageRows + 1));
 
     if (caption) {
-      pdf.setFontSize(8.5);
+      pdf.setFontSize(6);
       pdf.setTextColor(150);
       pdf.text(
         `${caption}  ·  Page ${p + 1} of ${pages.length}`,
@@ -156,21 +165,63 @@ export async function exportPdf(
       const y = layout.marginIn + gapY * (row + 1) + cellIn * row;
 
       const el = await loadImage(img.url);
-      const canvas = renderBadge(el, idx, settings, img.offsetX, img.offsetY);
+      const canvas = renderBadge(el, settings, img.offsetX, img.offsetY, img.color);
       // JPEG (white corners) keeps the PDF email-friendly small.
       pdf.addImage(canvas.toDataURL("image/jpeg", JPEG_QUALITY), "JPEG", x, y, cellIn, cellIn, undefined, "FAST");
 
-      if (settings.cutGuides) {
-        pdf.setDrawColor(0); // black - easy to see when cutting
+      // Round badges: a thin dashed circle 5% BIGGER than the badge - a cutting
+      // buffer sitting just outside the true edge.
+      if (settings.cutGuides && settings.shape === "circle") {
+        pdf.setDrawColor(140);
         pdf.setLineDashPattern([0.04, 0.03], 0);
-        pdf.setLineWidth(0.01);
-        if (settings.shape === "circle") {
-          pdf.circle(x + cellIn / 2, y + cellIn / 2, cellIn / 2, "S");
-        } else {
-          pdf.rect(x, y, cellIn, cellIn, "S");
-        }
+        pdf.setLineWidth(0.008);
+        pdf.circle(x + cellIn / 2, y + cellIn / 2, cellIn * 0.525, "S");
         pdf.setLineDashPattern([], 0);
       }
+
+      // Extracted name: straight, bold, horizontal near the bottom - kid-readable.
+      if (settings.showNames) {
+        const name = extractName(img.name);
+        if (name) {
+          const tx = x + cellIn / 2;
+          const ty = y + cellIn * 0.8;
+          pdf.setFont("helvetica", "bold");
+          // nameSize is a percent of the badge diameter (viewBox units), matches screen.
+          pdf.setFontSize(cellIn * (settings.nameSize / 100) * 72);
+          // White halo (4 offsets) so black text stays readable over busy photos.
+          const halo = cellIn * (settings.nameSize / 100) * 0.09;
+          pdf.setTextColor(255);
+          for (const [dx, dy] of [[-halo, 0], [halo, 0], [0, -halo], [0, halo]]) {
+            pdf.text(name, tx + dx, ty + dy, { align: "center" });
+          }
+          pdf.setTextColor(0);
+          pdf.text(name, tx, ty, { align: "center" });
+          pdf.setFont("helvetica", "normal");
+        }
+      }
+    }
+
+    // Cut grid: straight SOLID lines running full length between every column
+    // and row, so the sheet cuts into clean strips in a few guillotine passes.
+    // Lines sit in the gap centers, so each badge ends up centered in its cell.
+    if (settings.cutGuides) {
+      const xs = Array.from(
+        { length: columns + 1 },
+        (_, i) => layout.marginIn + gapX / 2 + i * (cellIn + gapX)
+      );
+      const ys = Array.from(
+        { length: pageRows + 1 },
+        (_, j) => layout.marginIn + gapY / 2 + j * (cellIn + gapY)
+      );
+      pdf.setDrawColor(0); // black - easy to see when cutting
+      pdf.setLineWidth(0.01);
+      pdf.setLineDashPattern([], 0); // solid
+      const top = ys[0];
+      const bottom = ys[ys.length - 1];
+      const left = xs[0];
+      const right = xs[xs.length - 1];
+      for (const x of xs) pdf.line(x, top, x, bottom);
+      for (const y of ys) pdf.line(left, y, right, y);
     }
   }
 

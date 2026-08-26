@@ -2,14 +2,19 @@ import Link from "next/link";
 import Image from "next/image";
 import type { ReactNode } from "react";
 
-export function Header({ actions }: { actions?: ReactNode }) {
+export function Header({ actions, center }: { actions?: ReactNode; center?: ReactNode }) {
   return (
     <header className="no-print sticky top-0 z-30 border-b border-zinc-200/80 bg-white/80 backdrop-blur">
-      <div className="mx-auto flex h-14 max-w-[1800px] items-center justify-between gap-3 px-4 sm:px-6">
+      <div className="relative mx-auto flex h-14 max-w-[1800px] items-center justify-between gap-3 px-4 sm:px-6">
         <Link href="/" className="flex shrink-0 items-center gap-2.5">
           <Image src="/icon.png" alt="Badges" width={30} height={30} className="rounded-lg" priority />
           <span className="text-lg font-semibold tracking-tight">Badges</span>
         </Link>
+        {center && (
+          <div className="pointer-events-none absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 sm:block">
+            <div className="pointer-events-auto">{center}</div>
+          </div>
+        )}
         {actions && <div className="ml-auto flex items-center gap-2">{actions}</div>}
         <a
           href="https://github.com/bunlongheng/badges"

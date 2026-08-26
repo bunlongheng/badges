@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { BADGE_STYLES, SHAPES, SIZE_PRESETS, type Settings } from "@/lib/presets";
+import { BORDERS, SHAPES, SIZE_PRESETS, type Settings } from "@/lib/presets";
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
   return (
@@ -97,6 +97,8 @@ export function Controls({
         <div className="grid grid-cols-2 gap-2">
           {SIZE_PRESETS.map((s) => {
             const active = Math.abs(settings.sizeIn - s.inches) < 0.001;
+            // Show the measurement in the active ruler unit only.
+            const detail = settings.rulerUnit === "cm" ? `${s.cm} cm` : `${s.inches.toFixed(2)}"`;
             return (
               <button
                 key={s.label}
@@ -117,7 +119,7 @@ export function Controls({
                 >
                   {s.label}
                 </div>
-                <div className="mt-0.5 text-[11px] text-zinc-500">{s.detail}</div>
+                <div className="mt-0.5 text-[11px] text-zinc-500">{detail}</div>
               </button>
             );
           })}
@@ -128,54 +130,9 @@ export function Controls({
         <Segmented value={settings.shape} options={SHAPES} onChange={(v) => update("shape", v)} />
       </Field>
 
-      <Field label="Page margin">
-        <div className="grid grid-cols-3 gap-1 rounded-lg bg-zinc-100 p-1">
-          {[
-            { id: "auto", label: "Auto" },
-            { id: "0.1", label: '0.1"' },
-            { id: "0.25", label: '0.25"' },
-          ].map((o) => {
-            const active =
-              o.id === "auto"
-                ? settings.marginAuto
-                : !settings.marginAuto && settings.marginIn === parseFloat(o.id);
-            return (
-              <button
-                key={o.id}
-                type="button"
-                onClick={() => {
-                  if (o.id === "auto") {
-                    update("marginAuto", true);
-                  } else {
-                    update("marginAuto", false);
-                    update("marginIn", parseFloat(o.id));
-                  }
-                }}
-                className={[
-                  "rounded-md px-2 py-1.5 text-xs font-medium transition",
-                  active
-                    ? "bg-white text-brand-700 shadow-sm"
-                    : "text-zinc-500 hover:text-zinc-800",
-                ].join(" ")}
-              >
-                {o.label}
-              </button>
-            );
-          })}
-        </div>
-        <p className="mt-1.5 text-[11px] text-zinc-400">
-          {settings.marginAuto
-            ? "Fits the most badges with a safe printable border."
-            : "Fixed safe border around the page."}
-        </p>
+      <Field label="Border" hint={settings.border === "auto" ? "photo colour" : undefined}>
+        <Segmented value={settings.border} options={BORDERS} onChange={(v) => update("border", v)} />
       </Field>
-
-      {/* Advanced - hidden on phone to keep the panel short */}
-      <div className="hidden space-y-5 sm:block">
-        <Field label="Style">
-          <Segmented value={settings.style} options={BADGE_STYLES} onChange={(v) => update("style", v)} />
-        </Field>
-      </div>
 
       <div className="space-y-3 border-t border-zinc-200 pt-4">
         <Toggle
@@ -184,10 +141,30 @@ export function Controls({
           onChange={(v) => update("cutGuides", v)}
         />
         <Toggle
-          label="Show ruler & grid"
-          checked={settings.ruler}
-          onChange={(v) => update("ruler", v)}
+          label="Extract File Names"
+          checked={settings.showNames}
+          onChange={(v) => update("showNames", v)}
         />
+        {settings.showNames && (
+          <div className="space-y-1.5 pl-0.5">
+            <div className="flex items-baseline justify-between">
+              <label className="text-[11px] font-medium text-zinc-500">Name size</label>
+              <span className="text-[11px] tabular-nums text-zinc-400">
+                {settings.nameSize.toFixed(1)}
+              </span>
+            </div>
+            <input
+              type="range"
+              min={3}
+              max={16}
+              step={0.5}
+              value={settings.nameSize}
+              onChange={(e) => update("nameSize", parseFloat(e.target.value))}
+              className="h-1.5 w-full cursor-pointer accent-brand-600"
+              aria-label="Name font size"
+            />
+          </div>
+        )}
       </div>
 
       <button

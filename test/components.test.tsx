@@ -32,13 +32,13 @@ describe("Controls", () => {
     expect(update).toHaveBeenCalledWith("shape", "circle");
   });
 
-  it("toggles the ruler off", async () => {
+  it("updates the border when a segmented option is clicked", async () => {
     const update = vi.fn();
     render(
       <Controls settings={DEFAULT_SETTINGS} update={update} reset={vi.fn()} />
     );
-    await userEvent.click(screen.getByText("Show ruler & grid"));
-    expect(update).toHaveBeenCalledWith("ruler", false);
+    await userEvent.click(screen.getByRole("button", { name: "Auto" }));
+    expect(update).toHaveBeenCalledWith("border", "auto");
   });
 
   it("calls reset", async () => {

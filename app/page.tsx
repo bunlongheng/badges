@@ -22,6 +22,7 @@ export default function Home() {
   const sheetsRef = useRef<HTMLDivElement>(null);
   const addInputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
+  const [name, setName] = useState(""); // goes into the PDF filename
   const [flash, setFlash] = useState(0);
   const [mobileOpen, setMobileOpen] = useState(false); // phone: settings + photos drawer
   const [drag, setDrag] = useState<{ active: boolean; count: number }>({
@@ -125,36 +126,60 @@ export default function Home() {
   const sizePreset =
     SIZE_PRESETS.find((s) => Math.abs(s.inches - settings.sizeIn) < 0.001) ?? SIZE_PRESETS[0];
   const shapeLabel = SHAPES.find((s) => s.id === settings.shape)?.label ?? settings.shape;
+
+  // Filename: {name}-{size}-MMDDYYYY-{h}{mm}-{AM|PM}.pdf, e.g.
+  // "emma-large-08262026-450-AM.pdf". Stamped at export time so each is unique.
+  const buildPdfName = useCallback(() => {
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const date = `${pad(now.getMonth() + 1)}${pad(now.getDate())}${now.getFullYear()}`;
+    const ampm = now.getHours() < 12 ? "AM" : "PM";
+    const h12 = now.getHours() % 12 || 12;
+    const stamp = `${date}-${h12}${pad(now.getMinutes())}-${ampm}`;
+    const slug = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+    const size = sizePreset.label.toLowerCase();
+    const base = slug ? `${slug}-${size}` : `${size}-badges`;
+    return `${base}-${stamp}.pdf`;
+  }, [name, sizePreset.label]);
+
   const caption = `${sizePreset.label} (${sizePreset.cm} cm)  ·  ${shapeLabel}${
     settings.shape === "circle" ? "s" : ""
   }  ·  ${layout.perPage} per page  ·  Safe margin ${layout.marginIn.toFixed(2)}"`;
-
-  const pdfName = `${sizePreset.label.toLowerCase()}-badges.pdf`;
 
   const handlePdf = useCallback(async () => {
     if (pages.length === 0) return;
     setBusy(true);
     try {
-      await exportPdf(pages, images, layout, settings, caption, pdfName);
+      await exportPdf(pages, images, layout, settings, caption, buildPdfName());
     } catch (err) {
       console.error("PDF export failed:", err);
       alert("Sorry, the PDF export failed. Please try again.");
     } finally {
       setBusy(false);
     }
-  }, [pages, images, layout, settings, caption, pdfName]);
+  }, [pages, images, layout, settings, caption, buildPdfName]);
+
+  // Private recipients live in .env.local (NEXT_PUBLIC_EMAIL_TO), never in git.
+  // The Email button only appears when it's set, so a public build has no personal data.
+  const emailTo = (process.env.NEXT_PUBLIC_EMAIL_TO || "")
+    .split("&")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .join(",");
 
   const handleEmail = useCallback(async () => {
     if (pages.length === 0) return;
     setBusy(true);
     try {
-      await exportPdf(pages, images, layout, settings, caption, pdfName);
-      // Open a blank Gmail compose so the just-downloaded PDF can be attached.
+      const fname = buildPdfName();
+      // Download the PDF first (the browser can't auto-attach to Gmail web).
+      await exportPdf(pages, images, layout, settings, caption, fname);
+      const subject = fname.replace(/\.pdf$/i, "");
       window.open(
-        "https://mail.google.com/mail/u/0/?view=cm&fs=1&su=" +
-          encodeURIComponent("Badge sheets") +
-          "&body=" +
-          encodeURIComponent("Attaching the badge sheets PDF I just downloaded."),
+        "https://mail.google.com/mail/u/0/?view=cm&fs=1&to=" +
+          encodeURIComponent(emailTo) +
+          "&su=" +
+          encodeURIComponent(subject),
         "_blank",
         "noopener,noreferrer"
       );
@@ -164,7 +189,7 @@ export default function Home() {
     } finally {
       setBusy(false);
     }
-  }, [pages, images, layout, settings, caption, pdfName]);
+  }, [pages, images, layout, settings, caption, buildPdfName, emailTo]);
 
   const loadSamples = useCallback(async () => {
     try {
@@ -243,6 +268,18 @@ export default function Home() {
       )}
 
       <Header
+        center={
+          hasImages ? (
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Name"
+              aria-label="File name"
+              className="h-9 w-44 rounded-lg border border-zinc-200 bg-white px-3 text-center text-sm text-zinc-800 placeholder:text-zinc-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
+            />
+          ) : undefined
+        }
         actions={
           hasImages ? (
             <>
@@ -253,21 +290,23 @@ export default function Home() {
               >
                 Print
               </button>
-              <button
-                type="button"
-                onClick={handleEmail}
-                disabled={busy}
-                className="hidden h-9 items-center rounded-lg border border-zinc-200 bg-white px-3 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 disabled:opacity-60 sm:inline-flex"
-              >
-                Email
-              </button>
+              {emailTo && (
+                <button
+                  type="button"
+                  onClick={handleEmail}
+                  disabled={busy}
+                  className="hidden h-9 items-center rounded-lg border border-zinc-200 bg-white px-3 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 disabled:opacity-60 sm:inline-flex"
+                >
+                  Email
+                </button>
+              )}
               <button
                 type="button"
                 onClick={handlePdf}
                 disabled={busy}
                 className="inline-flex h-9 items-center rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:opacity-60"
               >
-                {busy ? "Rendering…" : "Download PDF"}
+                {busy ? "Rendering…" : "Download"}
               </button>
             </>
           ) : undefined

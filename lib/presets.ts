@@ -13,18 +13,18 @@ export const PAPERS: Paper[] = [
   { id: "legal", label: 'Legal (8.5 x 14")', w: 8.5, h: 14 },
 ];
 
-export type SizePreset = { label: string; inches: number; cm: number; detail: string };
+export type SizePreset = { label: string; inches: number; cm: number };
 
 const CM_PER_IN = 2.54;
 const cmToIn = (cm: number) => cm / CM_PER_IN;
 
 // The two real badge-press diameters.
-export const SIZE_SMALL_IN = cmToIn(4.75); // 1.870"
-export const SIZE_LARGE_IN = cmToIn(6.8); // 2.677"
+export const SIZE_SMALL_IN = cmToIn(4.85); // 1.909"
+export const SIZE_LARGE_IN = cmToIn(6.9); // 2.717"
 
 export const SIZE_PRESETS: SizePreset[] = [
-  { label: "Small", inches: SIZE_SMALL_IN, cm: 4.75, detail: '4.75 cm · 1.87" diameter' },
-  { label: "Large", inches: SIZE_LARGE_IN, cm: 6.8, detail: '6.8 cm · 2.68" diameter' },
+  { label: "Small", inches: SIZE_SMALL_IN, cm: 4.85 },
+  { label: "Large", inches: SIZE_LARGE_IN, cm: 6.9 },
 ];
 
 export type Shape = "square" | "rounded" | "circle";
@@ -39,11 +39,12 @@ export const FITS: { id: Fit; label: string }[] = [
   { id: "cover", label: "Fill (cover)" },
 ];
 
-export type BadgeStyle = "plain" | "kids" | "neon";
-export const BADGE_STYLES: { id: BadgeStyle; label: string }[] = [
-  { id: "plain", label: "Plain" },
-  { id: "kids", label: "Kids" },
-  { id: "neon", label: "Neon" },
+// Border around each badge: none, solid black, or auto (the photo's primary colour).
+export type Border = "none" | "black" | "auto";
+export const BORDERS: { id: Border; label: string }[] = [
+  { id: "none", label: "None" },
+  { id: "black", label: "Black" },
+  { id: "auto", label: "Auto" },
 ];
 
 export type Settings = {
@@ -56,7 +57,12 @@ export type Settings = {
   fit: Fit;
   /** when true, margin is auto-computed to fit the most badges with a safe border */
   marginAuto: boolean;
-  style: BadgeStyle;
+  /** border around each badge */
+  border: Border;
+  /** when true, show the photo's name as curved text along the bottom of each badge */
+  showNames: boolean;
+  /** curved name font size, as a percent of the badge diameter (viewBox units) */
+  nameSize: number;
   repeat: boolean;
   cutGuides: boolean;
   ruler: boolean;
@@ -68,11 +74,13 @@ export const DEFAULT_SETTINGS: Settings = {
   sizeIn: SIZE_LARGE_IN,
   columns: 3, // unused - layout auto-maximizes
   gapIn: 0, // touch, so we fit the most badges per page
-  marginIn: 0.25, // default: a fixed 0.25" safe border (badges spread evenly)
-  marginAuto: false,
+  marginIn: 0.25, // unused - margin is always Auto now
+  marginAuto: true, // Auto is the only mode: smallest safe border, even gaps
   shape: "circle",
   fit: "cover",
-  style: "plain",
+  border: "none",
+  showNames: false,
+  nameSize: 8.5,
   repeat: false,
   cutGuides: true,
   ruler: true,

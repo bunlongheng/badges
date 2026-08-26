@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { dominantColor } from "./color";
 
 export type BadgeImage = {
   id: string;
@@ -11,6 +12,8 @@ export type BadgeImage = {
   offsetY: number;
   /** content hash used to skip duplicate adds */
   hash?: string;
+  /** photo's primary colour, for the "Auto" border */
+  color?: string;
 };
 
 let counter = 0;
@@ -71,11 +74,17 @@ export function useImages() {
       const blob = await toDisplayableBlob(f);
       const url = URL.createObjectURL(blob);
       urls.current.add(url);
+      const id = nextId();
       setImages((prev) => [
         ...prev,
-        { id: nextId(), url, name: f.name || "pasted-image", offsetX: 50, offsetY: 50, hash },
+        { id, url, name: f.name || "pasted-image", offsetX: 50, offsetY: 50, hash },
       ]);
       setConverting((n) => n - 1);
+      // Sample the primary colour for the Auto border (async, patched in when ready).
+      dominantColor(url).then((color) => {
+        if (!color) return;
+        setImages((prev) => prev.map((im) => (im.id === id ? { ...im, color } : im)));
+      });
     }
     if (skipped > 0) {
       nonce.current += 1;

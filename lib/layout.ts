@@ -56,14 +56,15 @@ export function fitCount(available: number, size: number, gap: number): number {
  */
 export function computeLayout(settings: Settings): SheetLayout {
   const paper = getPaper(settings.paperId);
-  const marginIn = settings.marginAuto
-    ? autoSafeMargin(paper.w, paper.h, settings.sizeIn, settings.gapIn)
-    : settings.marginIn;
+  // Auto: use the smallest safe margin so we fit the most badges AND leave the
+  // most leftover space, which space-evenly then spreads as equal gaps around
+  // every badge (even quadrants) instead of packing them behind a fat border.
+  const marginIn = settings.marginAuto ? SAFE_MIN : settings.marginIn;
   const usableW = paper.w - marginIn * 2;
   const usableH = paper.h - marginIn * 2;
 
-  // Always maximize: fit as many badges as physically possible in the safe zone.
-  const columns = Math.max(1, fitCount(usableW, settings.sizeIn, settings.gapIn));
+  // Fit as many as possible, but never more than 3 across (owner preference).
+  const columns = Math.max(1, Math.min(3, fitCount(usableW, settings.sizeIn, settings.gapIn)));
   const rows = Math.max(1, fitCount(usableH, settings.sizeIn, settings.gapIn));
 
   return {
