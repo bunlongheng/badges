@@ -141,6 +141,11 @@ export function Controls({
           onChange={(v) => update("cutGuides", v)}
         />
         <Toggle
+          label="Show ruler & grid"
+          checked={settings.showGrid}
+          onChange={(v) => update("showGrid", v)}
+        />
+        <Toggle
           label="Extract File Names"
           checked={settings.showNames}
           onChange={(v) => update("showNames", v)}

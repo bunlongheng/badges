@@ -65,7 +65,8 @@ export type Settings = {
   nameSize: number;
   repeat: boolean;
   cutGuides: boolean;
-  ruler: boolean;
+  /** ruler bars + light measurement grid overlay (screen only), toggled together */
+  showGrid: boolean;
   rulerUnit: "in" | "cm";
 };
 
@@ -83,7 +84,7 @@ export const DEFAULT_SETTINGS: Settings = {
   nameSize: 8.5,
   repeat: false,
   cutGuides: true,
-  ruler: true,
+  showGrid: true,
   rulerUnit: "in",
 };
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { autoSafeMargin, buildPages, computeLayout, fitCount, pageCount } from "@/lib/layout";
-import { DEFAULT_SETTINGS, getPaper, type Settings } from "@/lib/presets";
+import { DEFAULT_SETTINGS, getPaper, SIZE_LARGE_IN, type Settings } from "@/lib/presets";
 
 describe("fitCount", () => {
   it("fits whole badges within available space accounting for gaps", () => {
@@ -35,6 +35,11 @@ describe("computeLayout", () => {
     // 8 would fit at 1" but the cap holds it to 3
     const s: Settings = { ...DEFAULT_SETTINGS, sizeIn: 1, columns: 3, gapIn: 0, marginIn: 0.25, marginAuto: false };
     expect(computeLayout(s).columns).toBe(3);
+  });
+
+  it("caps Large badges at 2 columns so there's room to cut", () => {
+    const s: Settings = { ...DEFAULT_SETTINGS, sizeIn: SIZE_LARGE_IN, gapIn: 0, marginAuto: true };
+    expect(computeLayout(s).columns).toBe(2);
   });
 
   it("always keeps at least one column and row", () => {

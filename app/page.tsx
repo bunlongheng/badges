@@ -119,9 +119,9 @@ export default function Home() {
   const scale = useMemo(() => {
     if (!width) return 0.6;
     // Fit within the column, leaving room for the ruler gutter so nothing overflows.
-    const target = Math.min(width - (settings.ruler ? 30 : 8), 900);
+    const target = Math.min(width - (settings.showGrid ? 30 : 8), 900);
     return Math.max(0.15, Math.min(1, target / (layout.paperW * 96)));
-  }, [width, layout.paperW, settings.ruler]);
+  }, [width, layout.paperW, settings.showGrid]);
 
   const sizePreset =
     SIZE_PRESETS.find((s) => Math.abs(s.inches - settings.sizeIn) < 0.001) ?? SIZE_PRESETS[0];

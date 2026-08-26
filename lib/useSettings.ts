@@ -9,10 +9,10 @@ function load(): Settings {
   if (typeof window === "undefined") return DEFAULT_SETTINGS;
   try {
     const raw = localStorage.getItem(KEY);
-    // marginAuto and ruler are always on now (their controls were removed) - force
-    // them so anyone with an older saved "false" isn't stuck.
+    // marginAuto is always on now (its control was removed) - force it so anyone
+    // with an older saved "false" isn't stuck on a fixed margin.
     return raw
-      ? { ...DEFAULT_SETTINGS, ...JSON.parse(raw), marginAuto: true, ruler: true }
+      ? { ...DEFAULT_SETTINGS, ...JSON.parse(raw), marginAuto: true }
       : DEFAULT_SETTINGS;
   } catch {
     return DEFAULT_SETTINGS;

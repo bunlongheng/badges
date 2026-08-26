@@ -135,16 +135,35 @@ export function BadgeSheet({
 
   const radius = cellRadius(settings.sizeIn, settings.shape);
 
+  // Straight cut-line positions (gap centers) - identical math to the PDF export,
+  // so the preview is an honest picture of how the sheet actually cuts.
+  const gcx = Math.max(
+    0,
+    (layout.paperW - layout.marginIn * 2 - layout.columns * settings.sizeIn) / (layout.columns + 1)
+  );
+  const gcy = Math.max(
+    0,
+    (layout.paperH - layout.marginIn * 2 - usedRows * settings.sizeIn) / (usedRows + 1)
+  );
+  const cutXs = Array.from(
+    { length: layout.columns + 1 },
+    (_, k) => layout.marginIn + gcx / 2 + k * (settings.sizeIn + gcx)
+  );
+  const cutYs = Array.from(
+    { length: usedRows + 1 },
+    (_, k) => layout.marginIn + gcy / 2 + k * (settings.sizeIn + gcy)
+  );
+
   return (
     <div
       style={{
         position: "relative",
-        paddingTop: settings.ruler ? R : 0,
-        paddingLeft: settings.ruler ? R : 0,
+        paddingTop: settings.showGrid ? R : 0,
+        paddingLeft: settings.showGrid ? R : 0,
       }}
       aria-label={`Page ${pageIndex + 1}`}
     >
-      {settings.ruler && (
+      {settings.showGrid && (
         <>
           <button
             type="button"
@@ -340,6 +359,46 @@ export function BadgeSheet({
           );
         })}
 
+        {/* Straight cut lines (guillotine grid) - same as the PDF, so the preview
+            is honest: dashed ring per badge PLUS the real straight cut lines. */}
+        {settings.cutGuides && (
+          <svg
+            viewBox={`0 0 ${layout.paperW} ${layout.paperH}`}
+            preserveAspectRatio="none"
+            style={{
+              position: "absolute",
+              inset: 0,
+              width: `${layout.paperW}in`,
+              height: `${layout.paperH}in`,
+              overflow: "visible",
+              pointerEvents: "none",
+            }}
+          >
+            {cutXs.map((x, k) => (
+              <line
+                key={"cx" + k}
+                x1={x}
+                y1={cutYs[0]}
+                x2={x}
+                y2={cutYs[cutYs.length - 1]}
+                stroke="#000000"
+                strokeWidth={0.012}
+              />
+            ))}
+            {cutYs.map((y, k) => (
+              <line
+                key={"cy" + k}
+                x1={cutXs[0]}
+                y1={y}
+                x2={cutXs[cutXs.length - 1]}
+                y2={y}
+                stroke="#000000"
+                strokeWidth={0.012}
+              />
+            ))}
+          </svg>
+        )}
+
         {/* Stats caption printed at the bottom of the sheet itself */}
         <div
           style={{
@@ -357,7 +416,7 @@ export function BadgeSheet({
         </div>
       </div>
 
-      {settings.ruler && (
+      {settings.showGrid && (
         <div className="no-print" style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
           {hTicks.slice(1).map((c) => (
             <div
