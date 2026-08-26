@@ -1,21 +1,24 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
-/** Track an element's content-box width with a ResizeObserver. */
+/**
+ * Track an element's width with a ResizeObserver via a CALLBACK ref, so it
+ * attaches the moment the node mounts (the preview stage only exists once images
+ * are added - an effect-based ref would miss it and leave width at 0).
+ */
 export function useMeasure<T extends HTMLElement = HTMLDivElement>() {
-  const ref = useRef<T>(null);
   const [width, setWidth] = useState(0);
+  const ro = useRef<ResizeObserver | null>(null);
 
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const ro = new ResizeObserver((entries) => {
+  const ref = useCallback((node: T | null) => {
+    ro.current?.disconnect();
+    if (!node) return;
+    setWidth(node.getBoundingClientRect().width);
+    ro.current = new ResizeObserver((entries) => {
       for (const e of entries) setWidth(e.contentRect.width);
     });
-    ro.observe(el);
-    setWidth(el.getBoundingClientRect().width);
-    return () => ro.disconnect();
+    ro.current.observe(node);
   }, []);
 
   return { ref, width };
