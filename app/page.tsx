@@ -237,8 +237,6 @@ export default function Home() {
   }, [add]);
 
   const hasImages = images.length > 0;
-  // Require a name before exporting - flag the field red and block Print/Email/Download.
-  const nameEmpty = !name.trim();
 
   return (
     <div className="min-h-screen">
@@ -306,15 +304,9 @@ export default function Home() {
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Name required"
+              placeholder="Name (optional)"
               aria-label="File name"
-              aria-invalid={nameEmpty}
-              className={[
-                "h-9 w-44 rounded-lg border bg-white px-3 text-center text-sm text-zinc-800 focus:outline-none focus:ring-2",
-                nameEmpty
-                  ? "border-red-400 ring-1 ring-red-200 placeholder:text-red-400 focus:border-red-400 focus:ring-red-200"
-                  : "border-zinc-200 placeholder:text-zinc-400 focus:border-brand-400 focus:ring-brand-200",
-              ].join(" ")}
+              className="h-9 w-44 rounded-lg border border-zinc-200 bg-white px-3 text-center text-sm text-zinc-800 placeholder:text-zinc-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
             />
           ) : undefined
         }
@@ -324,9 +316,7 @@ export default function Home() {
               <button
                 type="button"
                 onClick={() => window.print()}
-                disabled={nameEmpty}
-                title={nameEmpty ? "Enter a name first" : undefined}
-                className="hidden h-9 items-center rounded-lg border border-zinc-200 bg-white px-3 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-40 sm:inline-flex"
+                className="hidden h-9 items-center rounded-lg border border-zinc-200 bg-white px-3 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 sm:inline-flex"
               >
                 Print
               </button>
@@ -334,8 +324,7 @@ export default function Home() {
                 <button
                   type="button"
                   onClick={handleEmail}
-                  disabled={busy || nameEmpty}
-                  title={nameEmpty ? "Enter a name first" : undefined}
+                  disabled={busy}
                   className="hidden h-9 items-center rounded-lg border border-zinc-200 bg-white px-3 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-40 sm:inline-flex"
                 >
                   Email
@@ -345,8 +334,7 @@ export default function Home() {
                 <button
                   type="button"
                   onClick={() => setExportOpen((o) => !o)}
-                  disabled={busy || nameEmpty}
-                  title={nameEmpty ? "Enter a name first" : undefined}
+                  disabled={busy}
                   className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-4 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   {busy ? "Rendering…" : "Download"}
