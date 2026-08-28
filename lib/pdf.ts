@@ -67,21 +67,30 @@ function renderBadge(
   ctx.fillRect(0, 0, s, s);
 
   // Draw the image with object-fit cover/contain + object-position offset.
+  // Padding insets the artwork inside an inner box (matches the on-screen padding).
   const iw = img.naturalWidth || img.width;
   const ih = img.naturalHeight || img.height;
   if (iw && ih) {
+    const pad = settings.padding ? (s * settings.paddingPct) / 100 : 0;
+    const inner = s - 2 * pad;
     let scale: number;
-    if (settings.fit === "cover") scale = Math.max(s / iw, s / ih);
-    else scale = Math.min(s / iw, s / ih);
+    if (settings.fit === "cover") scale = Math.max(inner / iw, inner / ih);
+    else scale = Math.min(inner / iw, inner / ih);
     const dw = iw * scale;
     const dh = ih * scale;
     let dx: number, dy: number;
     if (settings.fit === "cover") {
-      dx = -(dw - s) * (offsetX / 100);
-      dy = -(dh - s) * (offsetY / 100);
+      dx = pad - (dw - inner) * (offsetX / 100);
+      dy = pad - (dh - inner) * (offsetY / 100);
     } else {
-      dx = (s - dw) / 2;
-      dy = (s - dh) / 2;
+      dx = pad + (inner - dw) / 2;
+      dy = pad + (inner - dh) / 2;
+    }
+    // Keep a cover image from bleeding into the padding band.
+    if (pad > 0) {
+      ctx.beginPath();
+      ctx.rect(pad, pad, inner, inner);
+      ctx.clip();
     }
     ctx.drawImage(img, dx, dy, dw, dh);
   }
@@ -184,7 +193,7 @@ export async function exportPdf(
         const name = extractName(img.name);
         if (name) {
           const tx = x + cellIn / 2;
-          const ty = y + cellIn * 0.8;
+          const ty = y + cellIn * 0.92;
           pdf.setFont("helvetica", "bold");
           // nameSize is a percent of the badge diameter (viewBox units), matches screen.
           pdf.setFontSize(cellIn * (settings.nameSize / 100) * 72);

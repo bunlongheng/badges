@@ -63,6 +63,10 @@ export type Settings = {
   showNames: boolean;
   /** curved name font size, as a percent of the badge diameter (viewBox units) */
   nameSize: number;
+  /** when true, inset the artwork inside each badge so it doesn't hit the cut edge */
+  padding: boolean;
+  /** padding amount, as a percent of the badge diameter (per side) */
+  paddingPct: number;
   repeat: boolean;
   cutGuides: boolean;
   /** ruler bars + light measurement grid overlay (screen only), toggled together */
@@ -78,10 +82,13 @@ export const DEFAULT_SETTINGS: Settings = {
   marginIn: 0.25, // unused - margin is always Auto now
   marginAuto: true, // Auto is the only mode: smallest safe border, even gaps
   shape: "circle",
-  fit: "cover",
+  fit: "contain", // show the whole logo/crest - tall crests aren't cropped
+
   border: "none",
   showNames: false,
   nameSize: 8.5,
+  padding: false,
+  paddingPct: 8,
   repeat: false,
   cutGuides: true,
   showGrid: true,
