@@ -138,6 +138,15 @@ export function BadgeSheet({
 
   const radius = cellRadius(settings.sizeIn, settings.shape);
 
+  // On a circle badge a square logo's corners fall outside the circle. In Fit
+  // mode, inscribe the image in the circle (largest square that fits) so the
+  // whole logo always shows. Fill still covers/crops. This stacks on user padding.
+  const inscribePct =
+    settings.shape === "circle" && settings.fit === "contain"
+      ? ((1 - 1 / Math.SQRT2) / 2) * 100 // ~14.64% per side
+      : 0;
+  const totalPadPct = (settings.padding ? settings.paddingPct : 0) + inscribePct;
+
   // Straight cut-line positions (gap centers) - identical math to the PDF export,
   // so the preview is an honest picture of how the sheet actually cuts.
   // Partial pages pack top-left (badges touch), so cut lines sit at the badge
@@ -277,9 +286,7 @@ export function BadgeSheet({
                   borderRadius: radius,
                   overflow: "hidden",
                   background: "#ffffff",
-                  padding: settings.padding
-                    ? `${(settings.sizeIn * settings.paddingPct) / 100}in`
-                    : 0,
+                  padding: totalPadPct ? `${(settings.sizeIn * totalPadPct) / 100}in` : 0,
                   boxSizing: "border-box",
                 }}
               >

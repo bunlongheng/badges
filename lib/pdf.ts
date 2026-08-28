@@ -71,7 +71,10 @@ function renderBadge(
   const iw = img.naturalWidth || img.width;
   const ih = img.naturalHeight || img.height;
   if (iw && ih) {
-    const pad = settings.padding ? (s * settings.paddingPct) / 100 : 0;
+    // Inscribe a Fit image inside a circle badge so its corners aren't clipped.
+    const inscribe =
+      settings.shape === "circle" && settings.fit === "contain" ? (s * (1 - 1 / Math.SQRT2)) / 2 : 0;
+    const pad = (settings.padding ? (s * settings.paddingPct) / 100 : 0) + inscribe;
     const inner = s - 2 * pad;
     let scale: number;
     if (settings.fit === "cover") scale = Math.max(inner / iw, inner / ih);
