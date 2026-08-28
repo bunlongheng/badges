@@ -111,6 +111,11 @@ export function BadgeSheet({
   const hTicks = Array.from({ length: countW + 1 }, (_, c) => c);
   const vTicks = Array.from({ length: countH + 1 }, (_, c) => c);
 
+  // A page that isn't completely full packs top-left (reading order) so the
+  // leftover badge lands where #1 would - not floated in the middle. Full pages
+  // still spread evenly for even margins.
+  const partialPage = page.length < layout.columns * layout.rows;
+
   const sheetStyle: CSSProperties = {
     width: `${layout.paperW}in`,
     height: `${layout.paperH}in`,
@@ -124,10 +129,8 @@ export function BadgeSheet({
     gridTemplateColumns: `repeat(${layout.columns}, ${settings.sizeIn}in)`,
     gridTemplateRows: `repeat(${usedRows}, ${settings.sizeIn}in)`,
     gap: 0,
-    // Spread the badges evenly across the whole safe area (even quadrants), so
-    // leftover space becomes even margins instead of empty bottom space.
-    justifyContent: "space-evenly",
-    alignContent: "space-evenly",
+    justifyContent: partialPage ? "start" : "space-evenly",
+    alignContent: partialPage ? "start" : "space-evenly",
     transform: `scale(${scale})`,
     transformOrigin: "top left",
     boxShadow: "0 10px 30px rgba(0,0,0,0.15)",
@@ -137,14 +140,20 @@ export function BadgeSheet({
 
   // Straight cut-line positions (gap centers) - identical math to the PDF export,
   // so the preview is an honest picture of how the sheet actually cuts.
-  const gcx = Math.max(
-    0,
-    (layout.paperW - layout.marginIn * 2 - layout.columns * settings.sizeIn) / (layout.columns + 1)
-  );
-  const gcy = Math.max(
-    0,
-    (layout.paperH - layout.marginIn * 2 - usedRows * settings.sizeIn) / (usedRows + 1)
-  );
+  // Partial pages pack top-left (badges touch), so cut lines sit at the badge
+  // boundaries instead of spread gap-centers.
+  const gcx = partialPage
+    ? 0
+    : Math.max(
+        0,
+        (layout.paperW - layout.marginIn * 2 - layout.columns * settings.sizeIn) / (layout.columns + 1)
+      );
+  const gcy = partialPage
+    ? 0
+    : Math.max(
+        0,
+        (layout.paperH - layout.marginIn * 2 - usedRows * settings.sizeIn) / (usedRows + 1)
+      );
   const cutXs = Array.from(
     { length: layout.columns + 1 },
     (_, k) => layout.marginIn + gcx / 2 + k * (settings.sizeIn + gcx)
@@ -247,6 +256,7 @@ export function BadgeSheet({
           return (
             <div
               key={i}
+              className={img ? "badge-cell" : undefined}
               onPointerDown={img ? (e) => onDown(e, img) : undefined}
               onPointerMove={onMove}
               onPointerUp={onUp}
@@ -286,6 +296,10 @@ export function BadgeSheet({
                       objectPosition: `${img.offsetX}% ${img.offsetY}%`,
                       display: "block",
                       pointerEvents: "none",
+                      // Only in Fill (cover) do we clip the image to the badge shape
+                      // so a filled circle stays circular. In Fit (contain) the whole
+                      // logo must show - clipping here would chop corner artwork.
+                      borderRadius: settings.fit === "cover" ? radius : undefined,
                     }}
                   />
                 ) : null}
@@ -405,20 +419,33 @@ export function BadgeSheet({
           </svg>
         )}
 
-        {/* Stats caption printed at the bottom of the sheet itself */}
+        {/* Stats caption printed at the bottom of the sheet itself - a white
+            pill with padding so it's never clipped or crowded by the last row. */}
         <div
           style={{
             position: "absolute",
-            left: `${layout.marginIn}in`,
-            right: `${layout.marginIn}in`,
-            bottom: `${Math.max(0.12, layout.marginIn * 0.5)}in`,
-            textAlign: "center",
-            font: "500 0.085in ui-sans-serif, system-ui, sans-serif",
-            color: "#9aa0a6",
-            letterSpacing: "0.005in",
+            left: 0,
+            right: 0,
+            bottom: `${Math.max(0.06, layout.marginIn * 0.35)}in`,
+            display: "flex",
+            justifyContent: "center",
+            pointerEvents: "none",
           }}
         >
-          {caption} · Page {pageIndex + 1} of {totalPages}
+          <span
+            style={{
+              background: "#ffffff",
+              padding: "0.03in 0.12in",
+              borderRadius: "0.06in",
+              textAlign: "center",
+              font: "500 0.085in ui-sans-serif, system-ui, sans-serif",
+              color: "#9aa0a6",
+              letterSpacing: "0.005in",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {caption} · Page {pageIndex + 1} of {totalPages}
+          </span>
         </div>
       </div>
 

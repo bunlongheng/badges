@@ -12,7 +12,7 @@ import { useSettings } from "@/lib/useSettings";
 import { useMeasure } from "@/lib/useMeasure";
 import { buildPages, computeLayout } from "@/lib/layout";
 import { SHAPES, SIZE_PRESETS } from "@/lib/presets";
-import { exportPdf } from "@/lib/pdf";
+import { exportPdf, exportPng } from "@/lib/pdf";
 import { filesFromDataTransfer, expandZips } from "@/lib/readDrop";
 
 export default function Home() {
@@ -26,6 +26,7 @@ export default function Home() {
   const [name, setName] = useState(""); // goes into the PDF filename
   const [flash, setFlash] = useState(0);
   const [mobileOpen, setMobileOpen] = useState(false); // phone: settings + photos drawer
+  const [exportOpen, setExportOpen] = useState(false); // Download: PNG vs PDF menu
   const [drag, setDrag] = useState<{ active: boolean; count: number }>({
     active: false,
     count: 0,
@@ -110,6 +111,15 @@ export default function Home() {
     if (settings.gapIn !== 0) update("gapIn", 0);
   }, [settings.gapIn, update]);
 
+  // Track the viewport so the desktop preview can fit the whole page on screen.
+  const [vp, setVp] = useState({ w: 0, h: 0 });
+  useEffect(() => {
+    const onResize = () => setVp({ w: window.innerWidth, h: window.innerHeight });
+    onResize();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
   const layout = useMemo(() => computeLayout(settings), [settings]);
   // repeat-to-fill was removed; always flow images across pages (one per badge)
   const pages = useMemo(
@@ -120,9 +130,14 @@ export default function Home() {
   const scale = useMemo(() => {
     if (!width) return 0.6;
     // Fit within the column, leaving room for the ruler gutter so nothing overflows.
-    const target = Math.min(width - (settings.showGrid ? 30 : 8), 900);
-    return Math.max(0.15, Math.min(1, target / (layout.paperW * 96)));
-  }, [width, layout.paperW, settings.showGrid]);
+    const byW = Math.min(width - (settings.showGrid ? 30 : 8), 1100) / (layout.paperW * 96);
+    // On desktop, also cap by the viewport height so the WHOLE first page is
+    // visible at once (no scrolling to see the bottom row). Reserve ~150px for
+    // the header + breathing room. Mobile stays width-driven (it scrolls).
+    const isDesktop = vp.w >= 1024;
+    const byH = isDesktop && vp.h ? (vp.h - 150) / (layout.paperH * 96) : Infinity;
+    return Math.max(0.15, Math.min(1.3, byW, byH));
+  }, [width, vp.w, vp.h, layout.paperW, layout.paperH, settings.showGrid]);
 
   const sizePreset =
     SIZE_PRESETS.find((s) => Math.abs(s.inches - settings.sizeIn) < 0.001) ?? SIZE_PRESETS[0];
@@ -147,18 +162,22 @@ export default function Home() {
     settings.shape === "circle" ? "s" : ""
   }  ·  ${layout.perPage} per page  ·  Safe margin ${layout.marginIn.toFixed(2)}"`;
 
-  const handlePdf = useCallback(async () => {
-    if (pages.length === 0) return;
-    setBusy(true);
-    try {
-      await exportPdf(pages, images, layout, settings, caption, buildPdfName());
-    } catch (err) {
-      console.error("PDF export failed:", err);
-      alert("Sorry, the PDF export failed. Please try again.");
-    } finally {
-      setBusy(false);
-    }
-  }, [pages, images, layout, settings, caption, buildPdfName]);
+  const handleExport = useCallback(
+    async (format: "pdf" | "png") => {
+      if (pages.length === 0) return;
+      setBusy(true);
+      try {
+        const run = format === "png" ? exportPng : exportPdf;
+        await run(pages, images, layout, settings, caption, buildPdfName());
+      } catch (err) {
+        console.error(`${format.toUpperCase()} export failed:`, err);
+        alert(`Sorry, the ${format.toUpperCase()} export failed. Please try again.`);
+      } finally {
+        setBusy(false);
+      }
+    },
+    [pages, images, layout, settings, caption, buildPdfName]
+  );
 
   // Private recipients live in .env.local (NEXT_PUBLIC_EMAIL_TO), never in git.
   // The Email button only appears when it's set, so a public build has no personal data.
@@ -175,7 +194,9 @@ export default function Home() {
       const fname = buildPdfName();
       // Download the PDF first (the browser can't auto-attach to Gmail web).
       await exportPdf(pages, images, layout, settings, caption, fname);
-      const subject = fname.replace(/\.pdf$/i, "");
+      // Email subject = the name the user typed (e.g. "Teams Clubs"), not the
+      // slugified, size/date-stamped filename. Fall back to a sensible default.
+      const subject = name.trim() || `${sizePreset.label} badges`;
       window.open(
         "https://mail.google.com/mail/u/0/?view=cm&fs=1&to=" +
           encodeURIComponent(emailTo) +
@@ -190,7 +211,7 @@ export default function Home() {
     } finally {
       setBusy(false);
     }
-  }, [pages, images, layout, settings, caption, buildPdfName, emailTo]);
+  }, [pages, images, layout, settings, caption, buildPdfName, emailTo, name, sizePreset.label]);
 
   // Picked/pasted files: expand any .zip into its images first, then add.
   const addFiles = useCallback(
@@ -216,6 +237,8 @@ export default function Home() {
   }, [add]);
 
   const hasImages = images.length > 0;
+  // Require a name before exporting - flag the field red and block Print/Email/Download.
+  const nameEmpty = !name.trim();
 
   return (
     <div className="min-h-screen">
@@ -283,9 +306,15 @@ export default function Home() {
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Name"
+              placeholder="Name required"
               aria-label="File name"
-              className="h-9 w-44 rounded-lg border border-zinc-200 bg-white px-3 text-center text-sm text-zinc-800 placeholder:text-zinc-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
+              aria-invalid={nameEmpty}
+              className={[
+                "h-9 w-44 rounded-lg border bg-white px-3 text-center text-sm text-zinc-800 focus:outline-none focus:ring-2",
+                nameEmpty
+                  ? "border-red-400 ring-1 ring-red-200 placeholder:text-red-400 focus:border-red-400 focus:ring-red-200"
+                  : "border-zinc-200 placeholder:text-zinc-400 focus:border-brand-400 focus:ring-brand-200",
+              ].join(" ")}
             />
           ) : undefined
         }
@@ -295,7 +324,9 @@ export default function Home() {
               <button
                 type="button"
                 onClick={() => window.print()}
-                className="hidden h-9 items-center rounded-lg border border-zinc-200 bg-white px-3 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 sm:inline-flex"
+                disabled={nameEmpty}
+                title={nameEmpty ? "Enter a name first" : undefined}
+                className="hidden h-9 items-center rounded-lg border border-zinc-200 bg-white px-3 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-40 sm:inline-flex"
               >
                 Print
               </button>
@@ -303,20 +334,48 @@ export default function Home() {
                 <button
                   type="button"
                   onClick={handleEmail}
-                  disabled={busy}
-                  className="hidden h-9 items-center rounded-lg border border-zinc-200 bg-white px-3 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 disabled:opacity-60 sm:inline-flex"
+                  disabled={busy || nameEmpty}
+                  title={nameEmpty ? "Enter a name first" : undefined}
+                  className="hidden h-9 items-center rounded-lg border border-zinc-200 bg-white px-3 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-40 sm:inline-flex"
                 >
                   Email
                 </button>
               )}
-              <button
-                type="button"
-                onClick={handlePdf}
-                disabled={busy}
-                className="inline-flex h-9 items-center rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:opacity-60"
-              >
-                {busy ? "Rendering…" : "Download"}
-              </button>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setExportOpen((o) => !o)}
+                  disabled={busy || nameEmpty}
+                  title={nameEmpty ? "Enter a name first" : undefined}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-4 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  {busy ? "Rendering…" : "Download"}
+                  {!busy && <span className="text-[10px] text-zinc-400">▾</span>}
+                </button>
+                {exportOpen && !busy && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setExportOpen(false)} />
+                    <div className="absolute right-0 z-20 mt-1 w-36 overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-lg">
+                      {(["pdf", "png"] as const).map((fmt) => (
+                        <button
+                          key={fmt}
+                          type="button"
+                          onClick={() => {
+                            setExportOpen(false);
+                            handleExport(fmt);
+                          }}
+                          className="flex w-full items-center justify-between px-3.5 py-2 text-sm text-zinc-700 transition hover:bg-zinc-100"
+                        >
+                          <span>{fmt.toUpperCase()}</span>
+                          <span className="text-[10px] text-zinc-400">
+                            {fmt === "pdf" ? "print-ready" : "image"}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
             </>
           ) : undefined
         }
@@ -501,10 +560,10 @@ export default function Home() {
 
           <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[340px_minmax(0,1fr)_300px]">
             {/* Left panel: images (desktop only) */}
-            <aside className="no-print hidden rounded-2xl border border-zinc-200 bg-white p-4 lg:sticky lg:top-20 lg:block">
+            <aside className="no-print hidden rounded-2xl border border-zinc-200 bg-white p-4 lg:sticky lg:top-20 lg:block lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
               <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                  Images
+                <h2 className="text-sm font-semibold text-zinc-600">
+                  Recent Imported
                 </h2>
                 <button
                   type="button"

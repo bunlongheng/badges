@@ -178,6 +178,18 @@ input[type="range"]::-moz-range-thumb {
   animation: float-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+/* Hover lift on the sheet badges (screen only - never affects print/export). */
+@media screen {
+  .badge-cell {
+    transition: transform 0.12s ease, filter 0.12s ease;
+  }
+  .badge-cell:hover {
+    transform: scale(1.03);
+    filter: drop-shadow(0 0.03in 0.06in rgba(0, 0, 0, 0.28));
+    z-index: 3;
+  }
+}
+
 /* ---- Print ---- */
 @media print {
   @page {

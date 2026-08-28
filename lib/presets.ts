@@ -18,13 +18,21 @@ export type SizePreset = { label: string; inches: number; cm: number };
 const CM_PER_IN = 2.54;
 const cmToIn = (cm: number) => cm / CM_PER_IN;
 
-// The two real badge-press diameters.
-export const SIZE_SMALL_IN = cmToIn(4.85); // 1.909"
+// Badge-press diameters, largest to smallest. Small/Large are the two real press
+// sizes; Mini/Micro/Nano are sticker/label tiers tuned to fit ~30 / ~63 / ~88 per
+// Letter page (with the column cap lifted for tiny sizes - see lib/layout.ts).
 export const SIZE_LARGE_IN = cmToIn(6.9); // 2.717"
+export const SIZE_SMALL_IN = cmToIn(4.85); // 1.909"
+export const SIZE_MINI_IN = cmToIn(3.94); // 1.551"  -> ~30 per page
+export const SIZE_MICRO_IN = cmToIn(2.92); // 1.150" -> ~63 per page
+export const SIZE_NANO_IN = cmToIn(2.41); // 0.949"  -> ~88 per page
 
 export const SIZE_PRESETS: SizePreset[] = [
-  { label: "Small", inches: SIZE_SMALL_IN, cm: 4.85 },
   { label: "Large", inches: SIZE_LARGE_IN, cm: 6.9 },
+  { label: "Small", inches: SIZE_SMALL_IN, cm: 4.85 },
+  { label: "Mini", inches: SIZE_MINI_IN, cm: 3.94 },
+  { label: "Micro", inches: SIZE_MICRO_IN, cm: 2.92 },
+  { label: "Nano", inches: SIZE_NANO_IN, cm: 2.41 },
 ];
 
 export type Shape = "square" | "rounded" | "circle";
@@ -35,8 +43,8 @@ export const SHAPES: { id: Shape; label: string }[] = [
 
 export type Fit = "contain" | "cover";
 export const FITS: { id: Fit; label: string }[] = [
-  { id: "contain", label: "Fit (contain)" },
-  { id: "cover", label: "Fill (cover)" },
+  { id: "contain", label: "Fit" },
+  { id: "cover", label: "Fill" },
 ];
 
 // Border around each badge: none, solid black, or auto (the photo's primary colour).

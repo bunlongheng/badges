@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { BORDERS, FITS, SHAPES, SIZE_PRESETS, type Settings } from "@/lib/presets";
+import { computeLayout } from "@/lib/layout";
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
   return (
@@ -94,23 +95,34 @@ export function Controls({
   return (
     <div className="space-y-5">
       <Field label="Badge size">
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-2 min-[380px]:grid-cols-3">
           {SIZE_PRESETS.map((s) => {
             const active = Math.abs(settings.sizeIn - s.inches) < 0.001;
             // Show the measurement in the active ruler unit only.
             const detail = settings.rulerUnit === "cm" ? `${s.cm} cm` : `${s.inches.toFixed(2)}"`;
+            // How many badges of this size fit on one page (matches the sheet).
+            const perPage = computeLayout({ ...settings, sizeIn: s.inches }).perPage;
             return (
               <button
                 key={s.label}
                 type="button"
                 onClick={() => update("sizeIn", s.inches)}
                 className={[
-                  "rounded-xl border p-3 text-left transition",
+                  "relative rounded-xl border p-2.5 text-left transition",
                   active
                     ? "border-brand-500 bg-brand-50 ring-1 ring-brand-500"
-                    : "border-zinc-200 hover:border-zinc-300",
+                    : "border-zinc-200 hover:border-zinc-400 hover:ring-1 hover:ring-zinc-300",
                 ].join(" ")}
               >
+                <span
+                  title={`${perPage} per page`}
+                  className={[
+                    "absolute right-1.5 top-1.5 flex h-6 min-w-6 items-center justify-center rounded-full px-1 text-[10px] font-semibold tabular-nums",
+                    active ? "bg-brand-600 text-white" : "bg-zinc-100 text-zinc-500",
+                  ].join(" ")}
+                >
+                  {perPage}
+                </span>
                 <div
                   className={[
                     "text-sm font-semibold",
