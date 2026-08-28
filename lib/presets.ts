@@ -82,7 +82,8 @@ export const DEFAULT_SETTINGS: Settings = {
   marginIn: 0.25, // unused - margin is always Auto now
   marginAuto: true, // Auto is the only mode: smallest safe border, even gaps
   shape: "circle",
-  fit: "cover",
+  fit: "contain", // show the whole logo/crest - tall crests aren't cropped
+
   border: "none",
   showNames: false,
   nameSize: 8.5,
