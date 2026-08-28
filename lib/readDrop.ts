@@ -62,7 +62,11 @@ export async function expandZips(files: File[]): Promise<File[]> {
       console.error("[badges] unzip failed:", f.name, err);
     }
   }
-  return out;
+  // Folder/zip entries arrive in arbitrary OS order - sort by filename (natural,
+  // so "2" < "10") so numbered sets ("01-...", "02-...") land in order.
+  return out.sort((a, b) =>
+    a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" })
+  );
 }
 
 function walkEntry(entry: FileSystemEntry, out: File[]): Promise<void> {

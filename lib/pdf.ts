@@ -86,10 +86,16 @@ function renderBadge(
       dx = pad + (inner - dw) / 2;
       dy = pad + (inner - dh) / 2;
     }
-    // Keep a cover image from bleeding into the padding band.
-    if (pad > 0) {
+    // In Fill (cover), clip the padded image to the badge shape so a filled circle
+    // stays circular. In Fit (contain) the whole logo must show - no inner clip,
+    // or corner artwork gets chopped.
+    if (pad > 0 && settings.fit === "cover") {
       ctx.beginPath();
-      ctx.rect(pad, pad, inner, inner);
+      if (settings.shape === "circle") {
+        ctx.arc(s / 2, s / 2, inner / 2, 0, Math.PI * 2);
+      } else {
+        ctx.rect(pad, pad, inner, inner);
+      }
       ctx.clip();
     }
     ctx.drawImage(img, dx, dy, dw, dh);
@@ -126,6 +132,111 @@ function renderBadge(
   return canvas;
 }
 
+/** Trigger a browser download for a Blob with a real filename. Uses an object
+ * URL (not a giant data: URL) so Chrome keeps the filename instead of a UUID. */
+function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+
+/** Canvas -> PNG Blob (promise wrapper around toBlob). */
+function canvasToPng(canvas: HTMLCanvasElement): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob failed"))), "image/png");
+  });
+}
+
+/**
+ * Export each page as a PNG (one file per page). Same layout math as the PDF,
+ * drawn onto a full-page canvas at print DPI.
+ */
+export async function exportPng(
+  pages: number[][],
+  images: BadgeImage[],
+  layout: SheetLayout,
+  settings: Settings,
+  caption = "",
+  filename = "badges.pdf"
+): Promise<void> {
+  const { paperW, paperH, columns, cellIn } = layout;
+  const usableW = paperW - layout.marginIn * 2;
+  const usableH = paperH - layout.marginIn * 2;
+  const perPage = columns * layout.rows;
+  const base = filename.replace(/\.(pdf|png)$/i, "");
+
+  for (let p = 0; p < pages.length; p++) {
+    const cells = pages[p];
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(paperW * DPI);
+    canvas.height = Math.round(paperH * DPI);
+    const ctx = canvas.getContext("2d")!;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const pageRows = Math.max(1, Math.ceil(cells.length / columns));
+    const partial = cells.length < perPage;
+    const gapX = partial ? 0 : Math.max(0, (usableW - columns * cellIn) / (columns + 1));
+    const gapY = partial ? 0 : Math.max(0, (usableH - pageRows * cellIn) / (pageRows + 1));
+
+    for (let idx = 0; idx < cells.length; idx++) {
+      const img = images[cells[idx]];
+      if (!img) continue;
+      const col = idx % columns;
+      const row = Math.floor(idx / columns);
+      const x = layout.marginIn + gapX * (col + 1) + cellIn * col;
+      const y = layout.marginIn + gapY * (row + 1) + cellIn * row;
+      const el = await loadImage(img.url);
+      const badge = renderBadge(el, settings, img.offsetX, img.offsetY, img.color);
+      ctx.drawImage(badge, Math.round(x * DPI), Math.round(y * DPI), Math.round(cellIn * DPI), Math.round(cellIn * DPI));
+
+      if (settings.showNames) {
+        const name = extractName(img.name);
+        if (name) {
+          ctx.save();
+          ctx.fillStyle = "#000000";
+          ctx.textAlign = "center";
+          ctx.font = `800 ${cellIn * (settings.nameSize / 100) * DPI}px ui-sans-serif, system-ui, sans-serif`;
+          ctx.lineWidth = cellIn * (settings.nameSize / 100) * DPI * 0.18;
+          ctx.strokeStyle = "#ffffff";
+          ctx.strokeText(name, (x + cellIn / 2) * DPI, (y + cellIn * 0.92) * DPI);
+          ctx.fillText(name, (x + cellIn / 2) * DPI, (y + cellIn * 0.92) * DPI);
+          ctx.restore();
+        }
+      }
+    }
+
+    // Straight cut lines (same as PDF).
+    if (settings.cutGuides) {
+      const xs = Array.from({ length: columns + 1 }, (_, i) => layout.marginIn + gapX / 2 + i * (cellIn + gapX));
+      const ys = Array.from({ length: pageRows + 1 }, (_, j) => layout.marginIn + gapY / 2 + j * (cellIn + gapY));
+      ctx.save();
+      ctx.strokeStyle = "#000000";
+      ctx.lineWidth = 0.01 * DPI;
+      for (const gx of xs) { ctx.beginPath(); ctx.moveTo(gx * DPI, ys[0] * DPI); ctx.lineTo(gx * DPI, ys[ys.length - 1] * DPI); ctx.stroke(); }
+      for (const gy of ys) { ctx.beginPath(); ctx.moveTo(xs[0] * DPI, gy * DPI); ctx.lineTo(xs[xs.length - 1] * DPI, gy * DPI); ctx.stroke(); }
+      ctx.restore();
+    }
+
+    if (caption) {
+      ctx.save();
+      ctx.fillStyle = "#9aa0a6";
+      ctx.textAlign = "center";
+      ctx.font = `500 ${0.085 * DPI}px ui-sans-serif, system-ui, sans-serif`;
+      ctx.fillText(`${caption}  ·  Page ${p + 1} of ${pages.length}`, (paperW / 2) * DPI, (paperH - Math.max(0.16, layout.marginIn)) * DPI);
+      ctx.restore();
+    }
+
+    const suffix = pages.length > 1 ? `-p${p + 1}` : "";
+    downloadBlob(await canvasToPng(canvas), `${base}${suffix}.png`);
+  }
+}
+
 /**
  * Build the PDF by drawing each badge at exact inch coordinates. No html2canvas,
  * so Tailwind's oklch/lab colors never reach a parser.
@@ -146,14 +257,18 @@ export async function exportPdf(
   // Spread badges evenly across the safe area (matches the on-screen space-evenly).
   const usableW = paperW - layout.marginIn * 2;
   const usableH = paperH - layout.marginIn * 2;
-  const gapX = Math.max(0, (usableW - columns * cellIn) / (columns + 1));
+  const perPage = columns * layout.rows;
 
   for (let p = 0; p < pages.length; p++) {
     if (p > 0) pdf.addPage([paperW, paperH], orientation);
     const cells = pages[p];
     // Rows needed for THIS page, so leftover height becomes even gaps.
     const pageRows = Math.max(1, Math.ceil(cells.length / columns));
-    const gapY = Math.max(0, (usableH - pageRows * cellIn) / (pageRows + 1));
+    // A partial page packs top-left (badges touch) so the leftover badge lands
+    // where #1 would; full pages spread evenly. Matches the on-screen sheet.
+    const partial = cells.length < perPage;
+    const gapX = partial ? 0 : Math.max(0, (usableW - columns * cellIn) / (columns + 1));
+    const gapY = partial ? 0 : Math.max(0, (usableH - pageRows * cellIn) / (pageRows + 1));
 
     if (caption) {
       pdf.setFontSize(6);

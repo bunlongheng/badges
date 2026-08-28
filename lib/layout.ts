@@ -1,4 +1,4 @@
-import { getPaper, SIZE_LARGE_IN, type Settings } from "./presets";
+import { getPaper, SIZE_LARGE_IN, SIZE_SMALL_IN, type Settings } from "./presets";
 
 export type SheetLayout = {
   /** columns actually used */
@@ -63,8 +63,14 @@ export function computeLayout(settings: Settings): SheetLayout {
   const usableW = paper.w - marginIn * 2;
   const usableH = paper.h - marginIn * 2;
 
-  // Cap columns so there's real room to cut: Large maxes at 2 across, others at 3.
-  const maxCols = settings.sizeIn >= SIZE_LARGE_IN - 0.01 ? 2 : 3;
+  // Cap columns so there's real room to cut: Large 2, Small 3; tiny sizes
+  // (Mini/Micro/Nano) pack densely so they can reach ~30/60/90 per page.
+  const maxCols =
+    settings.sizeIn >= SIZE_LARGE_IN - 0.01
+      ? 2
+      : settings.sizeIn >= SIZE_SMALL_IN - 0.01
+        ? 3
+        : 12;
   const columns = Math.max(1, Math.min(maxCols, fitCount(usableW, settings.sizeIn, settings.gapIn)));
   const rows = Math.max(1, fitCount(usableH, settings.sizeIn, settings.gapIn));
 

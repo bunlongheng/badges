@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { autoSafeMargin, buildPages, computeLayout, fitCount, pageCount } from "@/lib/layout";
-import { DEFAULT_SETTINGS, getPaper, SIZE_LARGE_IN, type Settings } from "@/lib/presets";
+import { DEFAULT_SETTINGS, getPaper, SIZE_LARGE_IN, SIZE_SMALL_IN, SIZE_NANO_IN, type Settings } from "@/lib/presets";
 
 describe("fitCount", () => {
   it("fits whole badges within available space accounting for gaps", () => {
@@ -31,10 +31,17 @@ describe("computeLayout", () => {
     expect(layout.perPage).toBe(layout.columns * layout.rows);
   });
 
-  it("caps columns at 3 for small badges (never 4+ across)", () => {
-    // 8 would fit at 1" but the cap holds it to 3
-    const s: Settings = { ...DEFAULT_SETTINGS, sizeIn: 1, columns: 3, gapIn: 0, marginIn: 0.25, marginAuto: false };
+  it("caps columns at 3 for Small badges (never 4+ across)", () => {
+    // 4 would fit at Small but the cap holds it to 3
+    const s: Settings = { ...DEFAULT_SETTINGS, sizeIn: SIZE_SMALL_IN, gapIn: 0, marginAuto: true };
     expect(computeLayout(s).columns).toBe(3);
+  });
+
+  it("lets tiny sizes pack densely (Nano fits far more than 3 columns / page)", () => {
+    const s: Settings = { ...DEFAULT_SETTINGS, sizeIn: SIZE_NANO_IN, gapIn: 0, marginAuto: true };
+    const layout = computeLayout(s);
+    expect(layout.columns).toBeGreaterThan(3);
+    expect(layout.perPage).toBeGreaterThanOrEqual(60);
   });
 
   it("caps Large badges at 2 columns so there's room to cut", () => {

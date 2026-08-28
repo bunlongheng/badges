@@ -16,8 +16,9 @@ describe("presets", () => {
     expect(SIZE_PRESETS.some((s) => s.inches === DEFAULT_SETTINGS.sizeIn)).toBe(true);
   });
 
-  it("has exactly two badge sizes: the real 4.85cm and 6.9cm diameters", () => {
-    expect(SIZE_PRESETS).toHaveLength(2);
-    expect(SIZE_PRESETS.map((s) => s.cm)).toEqual([4.85, 6.9]);
+  it("has the five badge sizes, largest to smallest", () => {
+    expect(SIZE_PRESETS).toHaveLength(5);
+    expect(SIZE_PRESETS.map((s) => s.label)).toEqual(["Large", "Small", "Mini", "Micro", "Nano"]);
+    expect(SIZE_PRESETS.map((s) => s.cm)).toEqual([6.9, 4.85, 3.94, 2.92, 2.41]);
   });
 });

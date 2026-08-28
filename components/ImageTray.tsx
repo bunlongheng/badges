@@ -93,9 +93,9 @@ export function ImageTray({
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+        <h2 className="text-sm font-semibold text-zinc-600">
           {images.length} image{images.length === 1 ? "" : "s"}
-          <span className="ml-1 font-normal normal-case text-zinc-400">· tap to edit, hold to drag</span>
+          <span className="ml-1 text-xs font-normal text-zinc-400">· tap to edit, hold to drag</span>
         </h2>
         <button
           type="button"
@@ -105,7 +105,7 @@ export function ImageTray({
           Clear all
         </button>
       </div>
-      <ul className="grid grid-cols-4 gap-2 sm:grid-cols-5 lg:grid-cols-3">
+      <ul className="grid grid-cols-4 gap-1.5 sm:grid-cols-5 lg:grid-cols-4">
         {images.map((img, i) => {
           const active = selected === img.id;
           return (
@@ -118,9 +118,11 @@ export function ImageTray({
               onPointerCancel={handleUp}
               onClick={() => handleClick(img.id)}
               className={[
-                "group relative aspect-square cursor-pointer select-none overflow-hidden rounded-lg border bg-zinc-100 transition",
+                "group relative aspect-square cursor-pointer select-none overflow-hidden rounded-lg border bg-white transition",
                 dragIdx === i ? "scale-95 opacity-50" : "opacity-100",
-                active ? "border-brand-500 ring-2 ring-brand-500" : "border-zinc-200",
+                active
+                  ? "border-brand-500 ring-2 ring-brand-500"
+                  : "border-zinc-200 hover:border-zinc-400 hover:ring-1 hover:ring-zinc-300",
               ].join(" ")}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -128,7 +130,7 @@ export function ImageTray({
                 src={img.url}
                 alt={img.name}
                 draggable={false}
-                className="pointer-events-none h-full w-full object-cover"
+                className="pointer-events-none h-full w-full object-contain p-1"
               />
 
               {/* Delete only appears once you tap the photo */}
