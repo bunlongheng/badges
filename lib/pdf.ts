@@ -170,7 +170,6 @@ export async function exportPng(
   const { paperW, paperH, columns, cellIn } = layout;
   const usableW = paperW - layout.marginIn * 2;
   const usableH = paperH - layout.marginIn * 2;
-  const perPage = columns * layout.rows;
   const base = filename.replace(/\.(pdf|png)$/i, "");
 
   for (let p = 0; p < pages.length; p++) {
@@ -183,7 +182,7 @@ export async function exportPng(
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     const pageRows = Math.max(1, Math.ceil(cells.length / columns));
-    const partial = cells.length < perPage;
+    const partial = cells.length < columns;
     const gapX = partial ? 0 : Math.max(0, (usableW - columns * cellIn) / (columns + 1));
     const gapY = partial ? 0 : Math.max(0, (usableH - pageRows * cellIn) / (pageRows + 1));
 
@@ -260,16 +259,16 @@ export async function exportPdf(
   // Spread badges evenly across the safe area (matches the on-screen space-evenly).
   const usableW = paperW - layout.marginIn * 2;
   const usableH = paperH - layout.marginIn * 2;
-  const perPage = columns * layout.rows;
 
   for (let p = 0; p < pages.length; p++) {
     if (p > 0) pdf.addPage([paperW, paperH], orientation);
     const cells = pages[p];
     // Rows needed for THIS page, so leftover height becomes even gaps.
     const pageRows = Math.max(1, Math.ceil(cells.length / columns));
-    // A partial page packs top-left (badges touch) so the leftover badge lands
-    // where #1 would; full pages spread evenly. Matches the on-screen sheet.
-    const partial = cells.length < perPage;
+    // Only a sparse page (fewer than one full row) packs top-left so a lone
+    // leftover badge lands where #1 would; anything with a full row spreads
+    // evenly to fill the sheet. Matches the on-screen layout.
+    const partial = cells.length < columns;
     const gapX = partial ? 0 : Math.max(0, (usableW - columns * cellIn) / (columns + 1));
     const gapY = partial ? 0 : Math.max(0, (usableH - pageRows * cellIn) / (pageRows + 1));
 
