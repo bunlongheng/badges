@@ -257,7 +257,9 @@ export function BadgeSheet({
                 touchAction: canPan ? "none" : undefined,
               }}
             >
-              {/* Photo, clipped to the TRUE badge shape - it fills only up to the border. */}
+              {/* Photo, clipped to the TRUE badge shape - it fills only up to the border.
+                  Padding insets the artwork so tall crests get breathing room and
+                  don't run into the cut edge. */}
               <div
                 style={{
                   position: "absolute",
@@ -265,6 +267,10 @@ export function BadgeSheet({
                   borderRadius: radius,
                   overflow: "hidden",
                   background: "#ffffff",
+                  padding: settings.padding
+                    ? `${(settings.sizeIn * settings.paddingPct) / 100}in`
+                    : 0,
+                  boxSizing: "border-box",
                 }}
               >
                 {img ? (
@@ -313,7 +319,7 @@ export function BadgeSheet({
                 >
                   <text
                     x={50}
-                    y={80}
+                    y={92}
                     textAnchor="middle"
                     fill="#000000"
                     stroke="#ffffff"

@@ -13,6 +13,7 @@ import { useMeasure } from "@/lib/useMeasure";
 import { buildPages, computeLayout } from "@/lib/layout";
 import { SHAPES, SIZE_PRESETS } from "@/lib/presets";
 import { exportPdf } from "@/lib/pdf";
+import { filesFromDataTransfer, expandZips } from "@/lib/readDrop";
 
 export default function Home() {
   const { images, add, remove, move, clear, setOffset, converting, notice, clearNotice } =
@@ -59,7 +60,12 @@ export default function Home() {
       e.preventDefault();
       dragDepth.current = 0;
       setDrag({ active: false, count: 0 });
-      if (e.dataTransfer?.files?.length) add(e.dataTransfer.files);
+      // Recurse dropped folders + expand dropped .zip files, then add.
+      if (e.dataTransfer) {
+        filesFromDataTransfer(e.dataTransfer).then((files) => {
+          if (files.length) add(files);
+        });
+      }
     };
     window.addEventListener("dragenter", onEnter);
     window.addEventListener("dragover", onOver);
@@ -98,11 +104,6 @@ export default function Home() {
     const t = setTimeout(clearNotice, 3200);
     return () => clearTimeout(t);
   }, [notice, clearNotice]);
-
-  // Image fit is always cover now (control removed); migrate any old persisted value.
-  useEffect(() => {
-    if (settings.fit !== "cover") update("fit", "cover");
-  }, [settings.fit, update]);
 
   // The gap control was removed; badges always touch (max fit). Migrate old values.
   useEffect(() => {
@@ -190,6 +191,14 @@ export default function Home() {
       setBusy(false);
     }
   }, [pages, images, layout, settings, caption, buildPdfName, emailTo]);
+
+  // Picked/pasted files: expand any .zip into its images first, then add.
+  const addFiles = useCallback(
+    async (files: FileList | File[]) => {
+      add(await expandZips(Array.from(files)));
+    },
+    [add]
+  );
 
   const loadSamples = useCallback(async () => {
     try {
@@ -421,11 +430,11 @@ export default function Home() {
               <input
                 ref={addInputRef}
                 type="file"
-                accept="image/*,.heic,.heif,.HEIC,.HEIF,image/heic,image/heif"
+                accept="image/*,.heic,.heif,.HEIC,.HEIF,image/heic,image/heif,.zip,application/zip"
                 multiple
                 className="hidden"
                 onChange={(e) => {
-                  if (e.target.files) add(e.target.files);
+                  if (e.target.files) addFiles(e.target.files);
                   e.target.value = "";
                 }}
               />
@@ -436,11 +445,11 @@ export default function Home() {
             <input
               ref={addInputRef}
               type="file"
-              accept="image/*,.heic,.heif,.HEIC,.HEIF,image/heic,image/heif"
+              accept="image/*,.heic,.heif,.HEIC,.HEIF,image/heic,image/heif,.zip,application/zip"
               multiple
               className="hidden"
               onChange={(e) => {
-                if (e.target.files) add(e.target.files);
+                if (e.target.files) addFiles(e.target.files);
                 e.target.value = "";
               }}
             />

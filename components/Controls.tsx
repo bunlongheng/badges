@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { BORDERS, SHAPES, SIZE_PRESETS, type Settings } from "@/lib/presets";
+import { BORDERS, FITS, SHAPES, SIZE_PRESETS, type Settings } from "@/lib/presets";
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
   return (
@@ -130,6 +130,13 @@ export function Controls({
         <Segmented value={settings.shape} options={SHAPES} onChange={(v) => update("shape", v)} />
       </Field>
 
+      <Field
+        label="Fit"
+        hint={settings.fit === "contain" ? "whole logo" : "fill & crop"}
+      >
+        <Segmented value={settings.fit} options={FITS} onChange={(v) => update("fit", v)} />
+      </Field>
+
       <Field label="Border" hint={settings.border === "auto" ? "photo colour" : undefined}>
         <Segmented value={settings.border} options={BORDERS} onChange={(v) => update("border", v)} />
       </Field>
@@ -145,6 +152,31 @@ export function Controls({
           checked={settings.showGrid}
           onChange={(v) => update("showGrid", v)}
         />
+        <Toggle
+          label="Add padding"
+          checked={settings.padding}
+          onChange={(v) => update("padding", v)}
+        />
+        {settings.padding && (
+          <div className="space-y-1.5 pl-0.5">
+            <div className="flex items-baseline justify-between">
+              <label className="text-[11px] font-medium text-zinc-500">Padding size</label>
+              <span className="text-[11px] tabular-nums text-zinc-400">
+                {settings.paddingPct}%
+              </span>
+            </div>
+            <input
+              type="range"
+              min={2}
+              max={25}
+              step={1}
+              value={settings.paddingPct}
+              onChange={(e) => update("paddingPct", parseFloat(e.target.value))}
+              className="h-1.5 w-full cursor-pointer accent-brand-600"
+              aria-label="Padding size"
+            />
+          </div>
+        )}
         <Toggle
           label="Extract File Names"
           checked={settings.showNames}

@@ -63,6 +63,10 @@ export type Settings = {
   showNames: boolean;
   /** curved name font size, as a percent of the badge diameter (viewBox units) */
   nameSize: number;
+  /** when true, inset the artwork inside each badge so it doesn't hit the cut edge */
+  padding: boolean;
+  /** padding amount, as a percent of the badge diameter (per side) */
+  paddingPct: number;
   repeat: boolean;
   cutGuides: boolean;
   /** ruler bars + light measurement grid overlay (screen only), toggled together */
@@ -82,6 +86,8 @@ export const DEFAULT_SETTINGS: Settings = {
   border: "none",
   showNames: false,
   nameSize: 8.5,
+  padding: false,
+  paddingPct: 8,
   repeat: false,
   cutGuides: true,
   showGrid: true,
