@@ -111,10 +111,10 @@ export function BadgeSheet({
   const hTicks = Array.from({ length: countW + 1 }, (_, c) => c);
   const vTicks = Array.from({ length: countH + 1 }, (_, c) => c);
 
-  // A page that isn't completely full packs top-left (reading order) so the
-  // leftover badge lands where #1 would - not floated in the middle. Full pages
-  // still spread evenly for even margins.
-  const partialPage = page.length < layout.columns * layout.rows;
+  // Only a SPARSE page (fewer badges than one full row) packs top-left, so a
+  // lone leftover badge lands where #1 would instead of floating in the middle.
+  // Pages with one or more full rows spread evenly to fill the whole sheet.
+  const partialPage = page.length < layout.columns;
 
   const sheetStyle: CSSProperties = {
     width: `${layout.paperW}in`,
