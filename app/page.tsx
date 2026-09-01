@@ -121,10 +121,16 @@ export default function Home() {
   }, []);
 
   const layout = useMemo(() => computeLayout(settings), [settings]);
-  // repeat-to-fill was removed; always flow images across pages (one per badge)
+  // Sticker bomb = one page holding every image (scattered). Otherwise flow
+  // images across as many grid/band pages as needed (one badge per slot).
   const pages = useMemo(
-    () => buildPages(images.length, layout.perPage, false),
-    [images.length, layout.perPage]
+    () =>
+      settings.bomb
+        ? images.length
+          ? [images.map((_, i) => i)]
+          : []
+        : buildPages(images.length, layout.perPage, false),
+    [images, layout.perPage, settings.bomb]
   );
 
   const scale = useMemo(() => {
@@ -142,8 +148,8 @@ export default function Home() {
   const sizePreset =
     SIZE_PRESETS.find((s) => Math.abs(s.inches - settings.sizeIn) < 0.001) ?? SIZE_PRESETS[0];
   const shapeLabel = SHAPES.find((s) => s.id === settings.shape)?.label ?? settings.shape;
-  // XL (Extra Large) is a band layout, not a press diameter.
-  const sizeLabel = settings.bands > 0 ? "XL" : sizePreset.label;
+  // XL (Extra Large) is a band layout; Sticker Bomb is a scatter layout.
+  const sizeLabel = settings.bomb ? "Sticker Bomb" : settings.bands > 0 ? "XL" : sizePreset.label;
 
   // Filename: {name}-{size}-MMDDYYYY-{h}{mm}-{AM|PM}.pdf, e.g.
   // "emma-large-08262026-450-AM.pdf". Stamped at export time so each is unique.
@@ -160,9 +166,11 @@ export default function Home() {
     return `${base}-${stamp}.pdf`;
   }, [name, sizeLabel]);
 
-  const caption = `${sizeLabel}${settings.bands > 0 ? "" : ` (${sizePreset.cm} cm)`}  ·  ${shapeLabel}${
-    settings.shape === "circle" ? "s" : ""
-  }  ·  ${layout.perPage} per page  ·  Safe margin ${layout.marginIn.toFixed(2)}"`;
+  const caption = settings.bomb
+    ? `Sticker Bomb  ·  ${images.length} sticker${images.length === 1 ? "" : "s"}  ·  ${shapeLabel}`
+    : `${sizeLabel}${settings.bands > 0 ? "" : ` (${sizePreset.cm} cm)`}  ·  ${shapeLabel}${
+        settings.shape === "circle" ? "s" : ""
+      }  ·  ${layout.perPage} per page  ·  Safe margin ${layout.marginIn.toFixed(2)}"`;
 
   const handleExport = useCallback(
     async (format: "pdf" | "png") => {

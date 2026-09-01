@@ -4,6 +4,7 @@ import { useRef, useState, type CSSProperties, type PointerEvent } from "react";
 import type { BadgeImage } from "@/lib/useImages";
 import type { SheetLayout } from "@/lib/layout";
 import type { Settings } from "@/lib/presets";
+import { stickerPlacements } from "@/lib/bomb";
 import { extractName } from "@/lib/text";
 
 function cellRadius(size: number, shape: Settings["shape"]): string {
@@ -72,8 +73,12 @@ export function BadgeSheet({
   const boxH = isOriginal ? boxH0 : Math.min(cw, boxH0);
   const boxMin = Math.min(boxW, boxH);
 
+  // Sticker bomb: scatter every image across the page (random pos/rotation/overlap).
+  const bomb = settings.bomb;
+  const stickers = bomb ? stickerPlacements(page.length, settings, layout) : [];
+
   const cellPx = ch * 96 * scale;
-  const canPan = settings.fit === "cover" && !isOriginal && !!onSetOffset;
+  const canPan = settings.fit === "cover" && !isOriginal && !bomb && !!onSetOffset;
 
   const onDown = (e: PointerEvent<HTMLDivElement>, img: BadgeImage) => {
     if (!canPan) return;
@@ -141,7 +146,7 @@ export function BadgeSheet({
     background: "#ffffff",
     padding: `${layout.marginIn}in`,
     boxSizing: "border-box",
-    display: "grid",
+    display: bomb ? "block" : "grid",
     gridTemplateColumns: `repeat(${layout.columns}, ${cw}in)`,
     gridTemplateRows: `repeat(${usedRows}, ${ch}in)`,
     gap: 0,
@@ -269,7 +274,57 @@ export function BadgeSheet({
       )}
       <div className="sheet-wrap" style={wrapStyle}>
         <div className="sheet" style={sheetStyle}>
-        {page.map((imgIdx, i) => {
+        {bomb &&
+          stickers.map((st, i) => {
+            const img = images[page[i]];
+            if (!img) return null;
+            const s = settings.sizeIn;
+            const stickerRadius = cellRadius(s, settings.shape);
+            return (
+              <div
+                key={i}
+                style={{
+                  position: "absolute",
+                  left: `${st.cx.toFixed(3)}in`,
+                  top: `${st.cy.toFixed(3)}in`,
+                  width: `${s}in`,
+                  height: `${s}in`,
+                  transform: `translate(-50%,-50%) rotate(${st.angle.toFixed(2)}deg) scale(${st.scale.toFixed(3)})`,
+                  transformOrigin: "center center",
+                  zIndex: i,
+                  filter: "drop-shadow(0 0.02in 0.025in rgba(0,0,0,0.28))",
+                }}
+              >
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    borderRadius: stickerRadius,
+                    overflow: "hidden",
+                    background: "#ffffff",
+                    padding: totalPadPct ? `${(s * totalPadPct) / 100}in` : 0,
+                    boxSizing: "border-box",
+                  }}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={img.url}
+                    alt=""
+                    draggable={false}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: settings.fit,
+                      objectPosition: `${img.offsetX}% ${img.offsetY}%`,
+                      display: "block",
+                      borderRadius: settings.fit === "cover" ? stickerRadius : undefined,
+                    }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        {!bomb && page.map((imgIdx, i) => {
           const img = images[imgIdx];
           const active = !!img && activeId === img.id;
           const borderColor =
@@ -407,7 +462,7 @@ export function BadgeSheet({
 
         {/* Straight cut lines (guillotine grid) - same as the PDF, so the preview
             is honest: dashed ring per badge PLUS the real straight cut lines. */}
-        {settings.cutGuides && (
+        {!bomb && settings.cutGuides && (
           <svg
             viewBox={`0 0 ${layout.paperW} ${layout.paperH}`}
             preserveAspectRatio="none"

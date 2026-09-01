@@ -1,6 +1,7 @@
 import type { BadgeImage } from "./useImages";
 import type { SheetLayout } from "./layout";
 import type { Settings } from "./presets";
+import { stickerPlacements } from "./bomb";
 import { extractName } from "./text";
 
 const DPI = 240; // plenty for a small badge; keeps file size sane
@@ -190,6 +191,36 @@ export async function exportPng(
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+    // Sticker bomb: scatter each image (rotated/scaled), no grid, no cut lines.
+    if (settings.bomb) {
+      const s = settings.sizeIn;
+      const sticks = stickerPlacements(cells.length, settings, layout);
+      for (let idx = 0; idx < cells.length; idx++) {
+        const img = images[cells[idx]];
+        if (!img) continue;
+        const st = sticks[idx];
+        const el = await loadImage(img.url);
+        const badge = renderBadge(el, settings, img.offsetX, img.offsetY, img.color, s, s, s, s);
+        ctx.save();
+        ctx.translate(st.cx * DPI, st.cy * DPI);
+        ctx.rotate((st.angle * Math.PI) / 180);
+        ctx.scale(st.scale, st.scale);
+        ctx.drawImage(badge, (-s / 2) * DPI, (-s / 2) * DPI, s * DPI, s * DPI);
+        ctx.restore();
+      }
+      if (caption) {
+        ctx.save();
+        ctx.fillStyle = "#9aa0a6";
+        ctx.textAlign = "center";
+        ctx.font = `500 ${0.085 * DPI}px ui-sans-serif, system-ui, sans-serif`;
+        ctx.fillText(`${caption}  ·  Page ${p + 1} of ${pages.length}`, (paperW / 2) * DPI, (paperH - Math.max(0.16, layout.marginIn)) * DPI);
+        ctx.restore();
+      }
+      const suffixB = pages.length > 1 ? `-p${p + 1}` : "";
+      downloadBlob(await canvasToPng(canvas), `${base}${suffixB}.png`);
+      continue;
+    }
+
     const pageRows = Math.max(1, Math.ceil(cells.length / columns));
     const partial = cells.length < columns;
     const gapX = partial ? 0 : Math.max(0, (usableW - columns * cellW) / (columns + 1));
@@ -286,6 +317,43 @@ export async function exportPdf(
   for (let p = 0; p < pages.length; p++) {
     if (p > 0) pdf.addPage([paperW, paperH], orientation);
     const cells = pages[p];
+
+    // Sticker bomb: render the whole scattered page to a canvas and place it, so
+    // the PDF matches the PNG/preview exactly (rotation + overlap).
+    if (settings.bomb) {
+      const s = settings.sizeIn;
+      const cv = document.createElement("canvas");
+      cv.width = Math.round(paperW * DPI);
+      cv.height = Math.round(paperH * DPI);
+      const c2 = cv.getContext("2d")!;
+      c2.fillStyle = "#ffffff";
+      c2.fillRect(0, 0, cv.width, cv.height);
+      const sticks = stickerPlacements(cells.length, settings, layout);
+      for (let idx = 0; idx < cells.length; idx++) {
+        const img = images[cells[idx]];
+        if (!img) continue;
+        const st = sticks[idx];
+        const el = await loadImage(img.url);
+        const badge = renderBadge(el, settings, img.offsetX, img.offsetY, img.color, s, s, s, s);
+        c2.save();
+        c2.translate(st.cx * DPI, st.cy * DPI);
+        c2.rotate((st.angle * Math.PI) / 180);
+        c2.scale(st.scale, st.scale);
+        c2.drawImage(badge, (-s / 2) * DPI, (-s / 2) * DPI, s * DPI, s * DPI);
+        c2.restore();
+      }
+      if (caption) {
+        c2.save();
+        c2.fillStyle = "#9aa0a6";
+        c2.textAlign = "center";
+        c2.font = `500 ${0.085 * DPI}px ui-sans-serif, system-ui, sans-serif`;
+        c2.fillText(`${caption}  ·  Page ${p + 1} of ${pages.length}`, (paperW / 2) * DPI, (paperH - Math.max(0.16, layout.marginIn)) * DPI);
+        c2.restore();
+      }
+      pdf.addImage(cv.toDataURL("image/jpeg", 0.9), "JPEG", 0, 0, paperW, paperH, undefined, "FAST");
+      continue;
+    }
+
     // Rows needed for THIS page, so leftover height becomes even gaps.
     const pageRows = Math.max(1, Math.ceil(cells.length / columns));
     // Only a sparse page (fewer than one full row) packs top-left so a lone
