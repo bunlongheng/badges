@@ -84,6 +84,17 @@ export type Settings = {
   /** Extra Large band layout: 0 = normal square-cell grid; >0 = that many
    *  full-width horizontal bands per page (one image per band, fit by height). */
   bands: number;
+  /** Sticker-bomb layout: scatter every image across one page at random
+   *  positions/rotations/overlap. Overrides the grid + bands when on. */
+  bomb: boolean;
+  /** re-roll seed for the scatter (Shuffle button) */
+  bombSeed: number;
+  /** max rotation jitter, 0-100 */
+  bombRotate: number;
+  /** position scatter amount, 0-100 */
+  bombScatter: number;
+  /** overlap / packing density, 0-100 (higher = tighter + more overlap) */
+  bombOverlap: number;
   cutGuides: boolean;
   /** ruler bars + light measurement grid overlay (screen only), toggled together */
   showGrid: boolean;
@@ -107,6 +118,11 @@ export const DEFAULT_SETTINGS: Settings = {
   paddingPct: 8,
   repeat: false,
   bands: 0,
+  bomb: false,
+  bombSeed: 1,
+  bombRotate: 55,
+  bombScatter: 50,
+  bombOverlap: 55,
   cutGuides: true,
   showGrid: true,
   rulerUnit: "in",

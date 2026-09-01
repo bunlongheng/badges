@@ -83,6 +83,35 @@ function Toggle({
   );
 }
 
+function Slider({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-baseline justify-between">
+        <label className="text-[11px] font-medium text-zinc-500">{label}</label>
+        <span className="text-[11px] tabular-nums text-zinc-400">{value}%</span>
+      </div>
+      <input
+        type="range"
+        min={0}
+        max={100}
+        step={1}
+        value={value}
+        onChange={(e) => onChange(parseInt(e.target.value, 10))}
+        className="h-1.5 w-full cursor-pointer accent-brand-600"
+        aria-label={label}
+      />
+    </div>
+  );
+}
+
 export function Controls({
   settings,
   update,
@@ -186,6 +215,31 @@ export function Controls({
       <Field label="Border" hint={settings.border === "auto" ? "photo colour" : undefined}>
         <Segmented value={settings.border} options={BORDERS} onChange={(v) => update("border", v)} />
       </Field>
+
+      <div className="space-y-3 border-t border-zinc-200 pt-4">
+        <Toggle
+          label="💣 Sticker bomb"
+          checked={settings.bomb}
+          onChange={(v) => update("bomb", v)}
+        />
+        {settings.bomb && (
+          <div className="space-y-3 rounded-xl border border-zinc-200 bg-zinc-50/60 p-3">
+            <button
+              type="button"
+              onClick={() => update("bombSeed", settings.bombSeed + 1)}
+              className="inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-lg bg-brand-600 text-sm font-semibold text-white transition hover:bg-brand-700"
+            >
+              🎲 Shuffle
+            </button>
+            <Slider label="Rotation" value={settings.bombRotate} onChange={(v) => update("bombRotate", v)} />
+            <Slider label="Spread" value={settings.bombScatter} onChange={(v) => update("bombScatter", v)} />
+            <Slider label="Overlap" value={settings.bombOverlap} onChange={(v) => update("bombOverlap", v)} />
+            <p className="text-[11px] leading-snug text-zinc-400">
+              Scatters every image on one page. Pick a small size (Micro/Nano) for a dense bomb.
+            </p>
+          </div>
+        )}
+      </div>
 
       <div className="space-y-3 border-t border-zinc-200 pt-4">
         <Toggle
