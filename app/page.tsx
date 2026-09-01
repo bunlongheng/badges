@@ -142,8 +142,8 @@ export default function Home() {
   const sizePreset =
     SIZE_PRESETS.find((s) => Math.abs(s.inches - settings.sizeIn) < 0.001) ?? SIZE_PRESETS[0];
   const shapeLabel = SHAPES.find((s) => s.id === settings.shape)?.label ?? settings.shape;
-  // Extra Large is a band layout, not a press diameter.
-  const sizeLabel = settings.bands > 0 ? "Extra Large" : sizePreset.label;
+  // XL (Extra Large) is a band layout, not a press diameter.
+  const sizeLabel = settings.bands > 0 ? "XL" : sizePreset.label;
 
   // Filename: {name}-{size}-MMDDYYYY-{h}{mm}-{AM|PM}.pdf, e.g.
   // "emma-large-08262026-450-AM.pdf". Stamped at export time so each is unique.
