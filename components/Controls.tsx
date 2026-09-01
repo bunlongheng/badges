@@ -96,6 +96,36 @@ export function Controls({
     <div className="space-y-5">
       <Field label="Badge size">
         <div className="grid grid-cols-2 gap-2 min-[380px]:grid-cols-3">
+          {/* XL (Extra Large): 3 full-width bands - a compact cell, biggest first. */}
+          {(() => {
+            const active = settings.bands > 0;
+            return (
+              <button
+                type="button"
+                onClick={() => update("bands", XL_BANDS)}
+                className={[
+                  "relative rounded-xl border p-2.5 text-left transition",
+                  active
+                    ? "border-brand-500 bg-brand-50 ring-1 ring-brand-500"
+                    : "border-zinc-200 hover:border-zinc-400 hover:ring-1 hover:ring-zinc-300",
+                ].join(" ")}
+              >
+                <span
+                  title={`${XL_BANDS} per page`}
+                  className={[
+                    "absolute right-1.5 top-1.5 flex h-6 min-w-6 items-center justify-center rounded-full px-1 text-[10px] font-semibold tabular-nums",
+                    active ? "bg-brand-600 text-white" : "bg-zinc-100 text-zinc-500",
+                  ].join(" ")}
+                >
+                  {XL_BANDS}
+                </span>
+                <div className={["text-sm font-semibold", active ? "text-brand-700" : "text-zinc-800"].join(" ")}>
+                  XL
+                </div>
+                <div className="mt-0.5 text-[11px] text-zinc-500">3 bands</div>
+              </button>
+            );
+          })()}
           {SIZE_PRESETS.map((s) => {
             // A diameter preset is active only in normal grid mode (bands off).
             const active = settings.bands === 0 && Math.abs(settings.sizeIn - s.inches) < 0.001;
@@ -139,36 +169,6 @@ export function Controls({
               </button>
             );
           })}
-          {/* Extra Large: page split into 3 full-width bands, one image per band. */}
-          {(() => {
-            const active = settings.bands > 0;
-            return (
-              <button
-                type="button"
-                onClick={() => update("bands", XL_BANDS)}
-                className={[
-                  "relative col-span-2 rounded-xl border p-2.5 text-left transition min-[380px]:col-span-3",
-                  active
-                    ? "border-brand-500 bg-brand-50 ring-1 ring-brand-500"
-                    : "border-zinc-200 hover:border-zinc-400 hover:ring-1 hover:ring-zinc-300",
-                ].join(" ")}
-              >
-                <span
-                  title={`${XL_BANDS} per page`}
-                  className={[
-                    "absolute right-1.5 top-1.5 flex h-6 min-w-6 items-center justify-center rounded-full px-1 text-[10px] font-semibold tabular-nums",
-                    active ? "bg-brand-600 text-white" : "bg-zinc-100 text-zinc-500",
-                  ].join(" ")}
-                >
-                  {XL_BANDS}
-                </span>
-                <div className={["text-sm font-semibold", active ? "text-brand-700" : "text-zinc-800"].join(" ")}>
-                  Extra Large
-                </div>
-                <div className="mt-0.5 text-[11px] text-zinc-500">{XL_BANDS} full-width bands</div>
-              </button>
-            );
-          })()}
         </div>
       </Field>
 
