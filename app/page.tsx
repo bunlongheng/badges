@@ -142,6 +142,8 @@ export default function Home() {
   const sizePreset =
     SIZE_PRESETS.find((s) => Math.abs(s.inches - settings.sizeIn) < 0.001) ?? SIZE_PRESETS[0];
   const shapeLabel = SHAPES.find((s) => s.id === settings.shape)?.label ?? settings.shape;
+  // Extra Large is a band layout, not a press diameter.
+  const sizeLabel = settings.bands > 0 ? "Extra Large" : sizePreset.label;
 
   // Filename: {name}-{size}-MMDDYYYY-{h}{mm}-{AM|PM}.pdf, e.g.
   // "emma-large-08262026-450-AM.pdf". Stamped at export time so each is unique.
@@ -153,12 +155,12 @@ export default function Home() {
     const h12 = now.getHours() % 12 || 12;
     const stamp = `${date}-${h12}${pad(now.getMinutes())}-${ampm}`;
     const slug = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
-    const size = sizePreset.label.toLowerCase();
+    const size = sizeLabel.toLowerCase().replace(/\s+/g, "-");
     const base = slug ? `${slug}-${size}` : `${size}-badges`;
     return `${base}-${stamp}.pdf`;
-  }, [name, sizePreset.label]);
+  }, [name, sizeLabel]);
 
-  const caption = `${sizePreset.label} (${sizePreset.cm} cm)  ·  ${shapeLabel}${
+  const caption = `${sizeLabel}${settings.bands > 0 ? "" : ` (${sizePreset.cm} cm)`}  ·  ${shapeLabel}${
     settings.shape === "circle" ? "s" : ""
   }  ·  ${layout.perPage} per page  ·  Safe margin ${layout.marginIn.toFixed(2)}"`;
 
@@ -196,7 +198,7 @@ export default function Home() {
       await exportPdf(pages, images, layout, settings, caption, fname);
       // Email subject = the name the user typed (e.g. "Teams Clubs"), not the
       // slugified, size/date-stamped filename. Fall back to a sensible default.
-      const subject = name.trim() || `${sizePreset.label} badges`;
+      const subject = name.trim() || `${sizeLabel} badges`;
       window.open(
         "https://mail.google.com/mail/u/0/?view=cm&fs=1&to=" +
           encodeURIComponent(emailTo) +
@@ -211,7 +213,7 @@ export default function Home() {
     } finally {
       setBusy(false);
     }
-  }, [pages, images, layout, settings, caption, buildPdfName, emailTo, name, sizePreset.label]);
+  }, [pages, images, layout, settings, caption, buildPdfName, emailTo, name, sizeLabel]);
 
   // Picked/pasted files: expand any .zip into its images first, then add.
   const addFiles = useCallback(

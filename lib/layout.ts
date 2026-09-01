@@ -7,8 +7,12 @@ export type SheetLayout = {
   rows: number;
   /** badges per page */
   perPage: number;
-  /** cell edge length in inches */
+  /** cell edge length in inches (square grid); for bands this equals cellH */
   cellIn: number;
+  /** cell width in inches (equals cellIn for the square grid; full page width for bands) */
+  cellW: number;
+  /** cell height in inches (equals cellIn for the square grid; page height / bands for bands) */
+  cellH: number;
   /** effective page margin in inches (auto-computed or manual) */
   marginIn: number;
   paperW: number;
@@ -63,6 +67,24 @@ export function computeLayout(settings: Settings): SheetLayout {
   const usableW = paper.w - marginIn * 2;
   const usableH = paper.h - marginIn * 2;
 
+  // Extra Large: split the page into N full-width horizontal bands, one image
+  // per band (fit by height). Cells are rectangular, not square.
+  if (settings.bands > 0) {
+    const rows = Math.max(1, Math.floor(settings.bands));
+    const cellH = usableH / rows;
+    return {
+      columns: 1,
+      rows,
+      perPage: rows,
+      cellIn: cellH,
+      cellW: usableW,
+      cellH,
+      marginIn,
+      paperW: paper.w,
+      paperH: paper.h,
+    };
+  }
+
   // Cap columns so there's real room to cut: Large 2, Small 3; tiny sizes
   // (Mini/Micro/Nano) pack densely so they can reach ~30/60/90 per page.
   const maxCols =
@@ -79,6 +101,8 @@ export function computeLayout(settings: Settings): SheetLayout {
     rows,
     perPage: columns * rows,
     cellIn: settings.sizeIn,
+    cellW: settings.sizeIn,
+    cellH: settings.sizeIn,
     marginIn,
     paperW: paper.w,
     paperH: paper.h,

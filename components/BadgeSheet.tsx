@@ -9,15 +9,15 @@ import { extractName } from "@/lib/text";
 function cellRadius(size: number, shape: Settings["shape"]): string {
   if (shape === "circle") return "50%";
   if (shape === "rounded") return `${(size * 0.12).toFixed(3)}in`;
-  return "0";
+  return "0"; // square + original are un-rounded
 }
 
-function frameStyle(size: number): CSSProperties {
+function frameStyle(w: number, h: number): CSSProperties {
   // The grid cell is the TRUE badge size. It does NOT clip, so the dashed cut
   // guide can extend 5% beyond it into the gap. The image gets its own clip layer.
   return {
-    width: `${size}in`,
-    height: `${size}in`,
+    width: `${w}in`,
+    height: `${h}in`,
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -56,8 +56,24 @@ export function BadgeSheet({
   } | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
 
-  const cellPx = settings.sizeIn * 96 * scale;
-  const canPan = settings.fit === "cover" && !!onSetOffset;
+  // Cell geometry: square grid has cellW === cellH === sizeIn; Extra Large bands
+  // are rectangular (full page width x page-height/bands).
+  const cw = layout.cellW;
+  const ch = layout.cellH;
+  // Extra Large bands: inset the badge inside its band so the shape AND its cut
+  // guide/name stay WITHIN the band's third - they must never cross the cut line.
+  // Height is the constraint (width can use the full band).
+  const bandMode = settings.bands > 0;
+  const boxH0 = bandMode ? ch * 0.86 : ch;
+  // The visible badge within the cell: "original" keeps the image's own shape and
+  // fills the band width; square/circle are a centred square sized by height.
+  const isOriginal = settings.shape === "original";
+  const boxW = isOriginal ? cw : Math.min(cw, boxH0);
+  const boxH = isOriginal ? boxH0 : Math.min(cw, boxH0);
+  const boxMin = Math.min(boxW, boxH);
+
+  const cellPx = ch * 96 * scale;
+  const canPan = settings.fit === "cover" && !isOriginal && !!onSetOffset;
 
   const onDown = (e: PointerEvent<HTMLDivElement>, img: BadgeImage) => {
     if (!canPan) return;
@@ -126,8 +142,8 @@ export function BadgeSheet({
     padding: `${layout.marginIn}in`,
     boxSizing: "border-box",
     display: "grid",
-    gridTemplateColumns: `repeat(${layout.columns}, ${settings.sizeIn}in)`,
-    gridTemplateRows: `repeat(${usedRows}, ${settings.sizeIn}in)`,
+    gridTemplateColumns: `repeat(${layout.columns}, ${cw}in)`,
+    gridTemplateRows: `repeat(${usedRows}, ${ch}in)`,
     gap: 0,
     justifyContent: partialPage ? "start" : "space-evenly",
     alignContent: partialPage ? "start" : "space-evenly",
@@ -136,7 +152,7 @@ export function BadgeSheet({
     boxShadow: "0 10px 30px rgba(0,0,0,0.15)",
   };
 
-  const radius = cellRadius(settings.sizeIn, settings.shape);
+  const radius = cellRadius(boxMin, settings.shape);
 
   // On a circle badge a square logo's corners fall outside the circle. In Fit
   // mode, inscribe the image in the circle (largest square that fits) so the
@@ -155,21 +171,21 @@ export function BadgeSheet({
     ? 0
     : Math.max(
         0,
-        (layout.paperW - layout.marginIn * 2 - layout.columns * settings.sizeIn) / (layout.columns + 1)
+        (layout.paperW - layout.marginIn * 2 - layout.columns * cw) / (layout.columns + 1)
       );
   const gcy = partialPage
     ? 0
     : Math.max(
         0,
-        (layout.paperH - layout.marginIn * 2 - usedRows * settings.sizeIn) / (usedRows + 1)
+        (layout.paperH - layout.marginIn * 2 - usedRows * ch) / (usedRows + 1)
       );
   const cutXs = Array.from(
     { length: layout.columns + 1 },
-    (_, k) => layout.marginIn + gcx / 2 + k * (settings.sizeIn + gcx)
+    (_, k) => layout.marginIn + gcx / 2 + k * (cw + gcx)
   );
   const cutYs = Array.from(
     { length: usedRows + 1 },
-    (_, k) => layout.marginIn + gcy / 2 + k * (settings.sizeIn + gcy)
+    (_, k) => layout.marginIn + gcy / 2 + k * (ch + gcy)
   );
 
   return (
@@ -270,12 +286,14 @@ export function BadgeSheet({
               onPointerMove={onMove}
               onPointerUp={onUp}
               style={{
-                ...frameStyle(settings.sizeIn),
-                position: "relative",
+                ...frameStyle(cw, ch),
                 cursor: canPan && img ? (active ? "grabbing" : "grab") : "default",
                 touchAction: canPan ? "none" : undefined,
               }}
             >
+             {/* Badge box: the visible badge, centred in the (possibly wide) cell.
+                 Square/circle are a centred square; "original" fills the whole cell. */}
+             <div style={{ position: "relative", width: `${boxW}in`, height: `${boxH}in` }}>
               {/* Photo, clipped to the TRUE badge shape - it fills only up to the border.
                   Padding insets the artwork so tall crests get breathing room and
                   don't run into the cut edge. */}
@@ -286,7 +304,7 @@ export function BadgeSheet({
                   borderRadius: radius,
                   overflow: "hidden",
                   background: "#ffffff",
-                  padding: totalPadPct ? `${(settings.sizeIn * totalPadPct) / 100}in` : 0,
+                  padding: totalPadPct ? `${(boxMin * totalPadPct) / 100}in` : 0,
                   boxSizing: "border-box",
                 }}
               >
@@ -360,7 +378,7 @@ export function BadgeSheet({
                 <div
                   style={{
                     position: "absolute",
-                    inset: `-${(settings.sizeIn * 0.025).toFixed(3)}in`,
+                    inset: `-${(boxMin * 0.025).toFixed(3)}in`,
                     borderRadius: radius,
                     border: "0.012in dashed #000000",
                     pointerEvents: "none",
@@ -382,6 +400,7 @@ export function BadgeSheet({
                   }}
                 />
               )}
+             </div>
             </div>
           );
         })}

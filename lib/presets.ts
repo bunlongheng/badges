@@ -35,11 +35,16 @@ export const SIZE_PRESETS: SizePreset[] = [
   { label: "Nano", inches: SIZE_NANO_IN, cm: 2.41 },
 ];
 
-export type Shape = "square" | "rounded" | "circle";
+export type Shape = "square" | "rounded" | "circle" | "original";
 export const SHAPES: { id: Shape; label: string }[] = [
   { id: "square", label: "Square" },
   { id: "circle", label: "Circle" },
+  { id: "original", label: "Original" },
 ];
+
+// Extra Large is a band layout, not a press diameter: it splits the page into
+// this many full-width horizontal bands (one image per band, fit by height).
+export const XL_BANDS = 3;
 
 export type Fit = "contain" | "cover";
 export const FITS: { id: Fit; label: string }[] = [
@@ -76,6 +81,9 @@ export type Settings = {
   /** padding amount, as a percent of the badge diameter (per side) */
   paddingPct: number;
   repeat: boolean;
+  /** Extra Large band layout: 0 = normal square-cell grid; >0 = that many
+   *  full-width horizontal bands per page (one image per band, fit by height). */
+  bands: number;
   cutGuides: boolean;
   /** ruler bars + light measurement grid overlay (screen only), toggled together */
   showGrid: boolean;
@@ -98,6 +106,7 @@ export const DEFAULT_SETTINGS: Settings = {
   padding: false,
   paddingPct: 8,
   repeat: false,
+  bands: 0,
   cutGuides: true,
   showGrid: true,
   rulerUnit: "in",

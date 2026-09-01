@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { BORDERS, FITS, SHAPES, SIZE_PRESETS, type Settings } from "@/lib/presets";
+import { BORDERS, FITS, SHAPES, SIZE_PRESETS, XL_BANDS, type Settings } from "@/lib/presets";
 import { computeLayout } from "@/lib/layout";
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
@@ -97,16 +97,20 @@ export function Controls({
       <Field label="Badge size">
         <div className="grid grid-cols-2 gap-2 min-[380px]:grid-cols-3">
           {SIZE_PRESETS.map((s) => {
-            const active = Math.abs(settings.sizeIn - s.inches) < 0.001;
+            // A diameter preset is active only in normal grid mode (bands off).
+            const active = settings.bands === 0 && Math.abs(settings.sizeIn - s.inches) < 0.001;
             // Show the measurement in the active ruler unit only.
             const detail = settings.rulerUnit === "cm" ? `${s.cm} cm` : `${s.inches.toFixed(2)}"`;
             // How many badges of this size fit on one page (matches the sheet).
-            const perPage = computeLayout({ ...settings, sizeIn: s.inches }).perPage;
+            const perPage = computeLayout({ ...settings, bands: 0, sizeIn: s.inches }).perPage;
             return (
               <button
                 key={s.label}
                 type="button"
-                onClick={() => update("sizeIn", s.inches)}
+                onClick={() => {
+                  update("bands", 0);
+                  update("sizeIn", s.inches);
+                }}
                 className={[
                   "relative rounded-xl border p-2.5 text-left transition",
                   active
@@ -135,6 +139,36 @@ export function Controls({
               </button>
             );
           })}
+          {/* Extra Large: page split into 3 full-width bands, one image per band. */}
+          {(() => {
+            const active = settings.bands > 0;
+            return (
+              <button
+                type="button"
+                onClick={() => update("bands", XL_BANDS)}
+                className={[
+                  "relative col-span-2 rounded-xl border p-2.5 text-left transition min-[380px]:col-span-3",
+                  active
+                    ? "border-brand-500 bg-brand-50 ring-1 ring-brand-500"
+                    : "border-zinc-200 hover:border-zinc-400 hover:ring-1 hover:ring-zinc-300",
+                ].join(" ")}
+              >
+                <span
+                  title={`${XL_BANDS} per page`}
+                  className={[
+                    "absolute right-1.5 top-1.5 flex h-6 min-w-6 items-center justify-center rounded-full px-1 text-[10px] font-semibold tabular-nums",
+                    active ? "bg-brand-600 text-white" : "bg-zinc-100 text-zinc-500",
+                  ].join(" ")}
+                >
+                  {XL_BANDS}
+                </span>
+                <div className={["text-sm font-semibold", active ? "text-brand-700" : "text-zinc-800"].join(" ")}>
+                  Extra Large
+                </div>
+                <div className="mt-0.5 text-[11px] text-zinc-500">{XL_BANDS} full-width bands</div>
+              </button>
+            );
+          })()}
         </div>
       </Field>
 
