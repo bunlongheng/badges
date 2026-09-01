@@ -16,10 +16,12 @@ function rng(seed: number) {
 }
 
 /**
- * Sticker-bomb placement: lay the stickers on a jittered grid that tightens with
- * the Overlap slider, then randomise each one's offset, rotation and size from the
- * seed. Fully deterministic for a given (seed, count, settings) so what you see is
- * what prints. Later stickers draw on top (natural overlap).
+ * Sticker-bomb placement: pack the stickers in a phyllotaxis (sunflower) spiral
+ * growing OUT from the page centre, so they pile up and overlap densely in the
+ * middle and fan out as the Spread slider rises. Overlap tightens the stacking,
+ * rotation tilts each one. Deterministic per (seed, count, settings); the Shuffle
+ * seed re-permutes which sticker sits where and rotates the whole cluster. Later
+ * stickers draw on top (natural overlap).
  */
 export function stickerPlacements(
   count: number,
@@ -33,35 +35,37 @@ export function stickerPlacements(
   const rotMax = clamp01(settings.bombRotate / 100) * 55; // max +/- degrees
   const usableW = paperW - marginIn * 2;
   const usableH = paperH - marginIn * 2;
-
-  // Grid step shrinks as overlap rises, so stickers pack tighter and overlap more.
-  const step = Math.max(0.22, s * (1 - overlap * 0.58));
-  const cols = Math.max(1, Math.ceil(usableW / step));
-  const rows = Math.max(1, Math.ceil(usableH / step));
-  const gridW = cols * step;
-  const gridH = rows * step;
-  const ox = marginIn + (usableW - gridW) / 2 + step / 2;
-  const oy = marginIn + (usableH - gridH) / 2 + step / 2;
-
-  const slots: { cx: number; cy: number }[] = [];
-  for (let r = 0; r < rows; r++)
-    for (let c = 0; c < cols; c++) slots.push({ cx: ox + c * step, cy: oy + r * step });
+  const cx0 = marginIn + usableW / 2;
+  const cy0 = marginIn + usableH / 2;
+  const n = Math.max(1, count);
 
   const rand = rng(((settings.bombSeed || 1) * 2654435761) >>> 0);
-  // Shuffle slots so a short image list still spreads across the whole sheet.
-  for (let i = slots.length - 1; i > 0; i--) {
+  // Re-permute spiral slots + spin the whole cluster so Shuffle gives a fresh look.
+  const perm = Array.from({ length: n }, (_, i) => i);
+  for (let i = n - 1; i > 0; i--) {
     const j = Math.floor(rand() * (i + 1));
-    [slots[i], slots[j]] = [slots[j], slots[i]];
+    [perm[i], perm[j]] = [perm[j], perm[i]];
   }
+  const spin = rand() * Math.PI * 2;
+
+  // Radius growth: Spread sets how far the cluster reaches; Overlap compresses it
+  // (tighter = more central stacking). At full spread the cluster fills the page.
+  const maxR = Math.min(usableW, usableH) * 0.5 * 0.96;
+  const spread01 = 0.16 + scatter * 0.84;
+  const k = (maxR / Math.sqrt(n)) * spread01 * (1 - overlap * 0.5);
+  const golden = Math.PI * (3 - Math.sqrt(5)); // ~137.5 deg
+  const jitter = s * 0.28 * scatter;
 
   const out: Sticker[] = [];
   for (let i = 0; i < count; i++) {
-    const slot = slots[i % slots.length];
-    const jx = (rand() - 0.5) * scatter * step * 1.25;
-    const jy = (rand() - 0.5) * scatter * step * 1.25;
+    const slot = perm[i];
+    const r = k * Math.sqrt(slot + 0.5);
+    const a = slot * golden + spin;
+    const jx = (rand() - 0.5) * 2 * jitter;
+    const jy = (rand() - 0.5) * 2 * jitter;
     const angle = (rand() - 0.5) * 2 * rotMax;
     const scale = 0.82 + rand() * 0.42; // organic size variation
-    out.push({ cx: slot.cx + jx, cy: slot.cy + jy, angle, scale });
+    out.push({ cx: cx0 + r * Math.cos(a) + jx, cy: cy0 + r * Math.sin(a) + jy, angle, scale });
   }
   return out;
 }
