@@ -108,7 +108,7 @@ export const DEFAULT_SETTINGS: Settings = {
   gapIn: 0, // touch, so we fit the most badges per page
   marginIn: 0.25, // unused - margin is always Auto now
   marginAuto: true, // Auto is the only mode: smallest safe border, even gaps
-  shape: "circle",
+  shape: "original", // keep each image's own shape by default
   fit: "contain", // show the whole logo/crest - tall crests aren't cropped
 
   border: "none",
@@ -121,8 +121,8 @@ export const DEFAULT_SETTINGS: Settings = {
   bomb: false,
   bombSeed: 1,
   bombRotate: 55,
-  bombScatter: 50,
-  bombOverlap: 55,
+  bombScatter: 70, // Spread
+  bombOverlap: 30, // Overlap
   cutGuides: true,
   showGrid: true,
   rulerUnit: "in",

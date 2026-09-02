@@ -88,7 +88,11 @@ function renderBadge(
     // Inscribe a Fit image inside a circle badge so its corners aren't clipped.
     const inscribe =
       settings.shape === "circle" && settings.fit === "contain" ? (bmin * (1 - 1 / Math.SQRT2)) / 2 : 0;
-    const pad = (settings.padding ? (bmin * settings.paddingPct) / 100 : 0) + inscribe;
+    // Sticker bomb always gives each sticker a >=10% white margin (die-cut look).
+    const pad = Math.max(
+      (settings.padding ? (bmin * settings.paddingPct) / 100 : 0) + inscribe,
+      settings.bomb ? bmin * 0.1 : 0
+    );
     const innerW = bw - 2 * pad;
     const innerH = bh - 2 * pad;
     const cover = settings.fit === "cover" && !isOriginal;
