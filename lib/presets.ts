@@ -170,7 +170,7 @@ export const MODE_PRESETS: Record<Mode, Partial<Settings>> = {
     padding: false,
     showNames: false,
   },
-  // Sticker bomb: scattered pile of small originals.
+  // Sticker bomb: scattered pile of small originals, everything else off.
   bomb: {
     bomb: true,
     bands: 0,
@@ -180,8 +180,11 @@ export const MODE_PRESETS: Record<Mode, Partial<Settings>> = {
     border: "none",
     padding: false,
     showNames: false,
-    bombRotate: 55,
-    bombScatter: 70,
+    cutGuides: false,
+    doubleSided: false,
+    showGrid: false,
+    bombRotate: 30,
+    bombScatter: 95,
     bombOverlap: 30,
   },
 };

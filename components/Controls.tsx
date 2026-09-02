@@ -259,20 +259,16 @@ export function Controls({
         <Segmented value={settings.border} options={BORDERS} onChange={(v) => update("border", v)} />
       </Field>
 
-      <div className="space-y-3 border-t border-zinc-200 pt-4">
-        <Toggle
-          label="💣 Sticker bomb"
-          checked={settings.bomb}
-          onChange={(v) => update("bomb", v)}
-        />
-        {settings.bomb && (
+      {/* Sticker-bomb controls appear when Bomb mode is on (see the Mode selector). */}
+      {settings.bomb && (
+        <div className="space-y-3 border-t border-zinc-200 pt-4">
           <div className="space-y-3 rounded-xl border border-zinc-200 bg-zinc-50/60 p-3">
             <button
               type="button"
               onClick={() => update("bombSeed", settings.bombSeed + 1)}
               className="inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-lg bg-brand-600 text-sm font-semibold text-white transition hover:bg-brand-700"
             >
-              🎲 Shuffle
+              Shuffle
             </button>
             <Slider label="Rotation" value={settings.bombRotate} onChange={(v) => update("bombRotate", v)} />
             <Slider label="Spread" value={settings.bombScatter} onChange={(v) => update("bombScatter", v)} />
@@ -281,8 +277,8 @@ export function Controls({
               Scatters every image on one page. Pick a small size (Micro/Nano) for a dense bomb.
             </p>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       <div className="space-y-3 border-t border-zinc-200 pt-4">
         <Toggle
