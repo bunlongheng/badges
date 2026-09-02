@@ -1,7 +1,7 @@
 "use client";
 
-import type { ReactNode } from "react";
-import { BORDERS, FITS, SHAPES, SIZE_PRESETS, XL_BANDS, type Settings } from "@/lib/presets";
+import { useState, type ReactNode } from "react";
+import { BORDERS, FITS, MODES, SHAPES, SIZE_PRESETS, XL_BANDS, type Mode, type Settings } from "@/lib/presets";
 import { computeLayout } from "@/lib/layout";
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
@@ -115,14 +115,58 @@ function Slider({
 export function Controls({
   settings,
   update,
+  applyMode,
   reset,
+  mobile = false,
 }: {
   settings: Settings;
   update: <K extends keyof Settings>(key: K, value: Settings[K]) => void;
+  applyMode: (mode: Mode) => void;
   reset: () => void;
+  /** phone: show only the mode presets, collapse the detailed controls */
+  mobile?: boolean;
 }) {
+  const [advanced, setAdvanced] = useState(false);
   return (
     <div className="space-y-5">
+      <Field label="Mode">
+        <div className="grid grid-cols-3 gap-2">
+          {MODES.map((m) => {
+            const active = settings.mode === m.id;
+            return (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => applyMode(m.id)}
+                className={[
+                  "flex flex-col items-center gap-0.5 rounded-xl border py-2.5 text-xs font-semibold transition",
+                  active
+                    ? "border-brand-500 bg-brand-50 text-brand-700 ring-1 ring-brand-500"
+                    : "border-zinc-200 text-zinc-700 hover:border-zinc-400 hover:ring-1 hover:ring-zinc-300",
+                ].join(" ")}
+              >
+                <span className="text-lg leading-none">{m.icon}</span>
+                {m.label}
+              </button>
+            );
+          })}
+        </div>
+      </Field>
+
+      {/* Phone: keep the drawer short - hide the detailed controls behind a toggle. */}
+      {mobile && (
+        <button
+          type="button"
+          onClick={() => setAdvanced((a) => !a)}
+          className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-zinc-200 py-2 text-sm font-medium text-zinc-600 transition hover:bg-zinc-50"
+        >
+          {advanced ? "Hide settings" : "Customize settings"}
+          <span className="text-[10px] text-zinc-400">{advanced ? "▲" : "▾"}</span>
+        </button>
+      )}
+
+      {(!mobile || advanced) && (
+        <>
       <Field label="Badge size">
         <div className="grid grid-cols-2 gap-2 min-[380px]:grid-cols-3">
           {/* XL (Extra Large): 3 full-width bands - a compact cell, biggest first. */}
@@ -324,6 +368,8 @@ export function Controls({
       >
         Reset to defaults
       </button>
+        </>
+      )}
     </div>
   );
 }

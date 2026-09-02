@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { DEFAULT_SETTINGS, type Settings } from "./presets";
+import { DEFAULT_SETTINGS, MODE_PRESETS, type Mode, type Settings } from "./presets";
 
 const KEY = "badges:settings:v1";
 
@@ -35,7 +35,17 @@ export function useSettings() {
     setSettings((s) => ({ ...s, [key]: value }));
   }, []);
 
+  // Apply many keys at once (used by the mode presets).
+  const patch = useCallback((partial: Partial<Settings>) => {
+    setSettings((s) => ({ ...s, ...partial }));
+  }, []);
+
+  // Switch mode: apply its preset bundle and remember the mode.
+  const applyMode = useCallback((mode: Mode) => {
+    setSettings((s) => ({ ...s, ...MODE_PRESETS[mode], mode }));
+  }, []);
+
   const reset = useCallback(() => setSettings(DEFAULT_SETTINGS), []);
 
-  return { settings, update, reset };
+  return { settings, update, patch, applyMode, reset };
 }

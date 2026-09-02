@@ -60,7 +60,18 @@ export const BORDERS: { id: Border; label: string }[] = [
   { id: "auto", label: "Auto" },
 ];
 
+// Top-level workflow modes. Each applies a preset bundle (see MODE_PRESETS) but
+// every individual control can still be tweaked afterwards.
+export type Mode = "badges" | "sheet" | "bomb";
+export const MODES: { id: Mode; label: string; icon: string }[] = [
+  { id: "badges", label: "Badges", icon: "🔵" },
+  { id: "sheet", label: "Sheet", icon: "🖼️" },
+  { id: "bomb", label: "Bomb", icon: "💣" },
+];
+
 export type Settings = {
+  /** which preset bundle was last applied (for highlighting the mode) */
+  mode: Mode;
   paperId: string;
   sizeIn: number;
   columns: number;
@@ -106,6 +117,7 @@ export type Settings = {
 };
 
 export const DEFAULT_SETTINGS: Settings = {
+  mode: "sheet",
   paperId: "letter",
   sizeIn: SIZE_LARGE_IN,
   columns: 3, // unused - layout auto-maximizes
@@ -131,6 +143,48 @@ export const DEFAULT_SETTINGS: Settings = {
   cutGuides: true,
   showGrid: true,
   rulerUnit: "in",
+};
+
+// Preset bundle applied when a mode is picked. Only the keys that define the mode
+// are set; the rest of the settings are left as-is.
+export const MODE_PRESETS: Record<Mode, Partial<Settings>> = {
+  // Print badges: circle, fill/crop, auto colour border, no padding, names on (size 4).
+  badges: {
+    bomb: false,
+    bands: 0,
+    sizeIn: SIZE_SMALL_IN,
+    shape: "circle",
+    fit: "cover",
+    border: "auto",
+    padding: false,
+    showNames: true,
+    nameSize: 4,
+  },
+  // Big originals on a sheet: Large, keep each image's own shape, whole logo.
+  sheet: {
+    bomb: false,
+    bands: 0,
+    sizeIn: SIZE_LARGE_IN,
+    shape: "original",
+    fit: "contain",
+    border: "none",
+    padding: false,
+    showNames: false,
+  },
+  // Sticker bomb: scattered pile of small originals.
+  bomb: {
+    bomb: true,
+    bands: 0,
+    sizeIn: SIZE_MICRO_IN,
+    shape: "original",
+    fit: "contain",
+    border: "none",
+    padding: false,
+    showNames: false,
+    bombRotate: 55,
+    bombScatter: 70,
+    bombOverlap: 30,
+  },
 };
 
 export function getPaper(id: string): Paper {
