@@ -168,6 +168,126 @@ function canvasToPng(canvas: HTMLCanvasElement): Promise<Blob> {
   });
 }
 
+/** Draw one full page (grid or sticker-bomb) onto a print-DPI canvas. Shared by
+ *  the PNG export and the double-sided PDF (which also needs a mirrored copy). */
+async function drawPageToCanvas(
+  cells: number[],
+  images: BadgeImage[],
+  layout: SheetLayout,
+  settings: Settings,
+  caption: string,
+  pageIndex: number,
+  totalPages: number
+): Promise<HTMLCanvasElement> {
+  const { paperW, paperH, columns, cellW, cellH } = layout;
+  const usableW = paperW - layout.marginIn * 2;
+  const usableH = paperH - layout.marginIn * 2;
+  const isOriginal = settings.shape === "original";
+
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(paperW * DPI);
+  canvas.height = Math.round(paperH * DPI);
+  const ctx = canvas.getContext("2d")!;
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  const drawCaption = () => {
+    if (!caption) return;
+    ctx.save();
+    ctx.fillStyle = "#9aa0a6";
+    ctx.textAlign = "center";
+    ctx.font = `500 ${0.085 * DPI}px ui-sans-serif, system-ui, sans-serif`;
+    ctx.fillText(`${caption}  ·  Page ${pageIndex + 1} of ${totalPages}`, (paperW / 2) * DPI, (paperH - Math.max(0.16, layout.marginIn)) * DPI);
+    ctx.restore();
+  };
+
+  // Sticker bomb: scatter each image (rotated/scaled), no grid, no cut lines.
+  // Draw in page order so the last image sits on top (bring-to-front).
+  if (settings.bomb) {
+    const s = settings.sizeIn;
+    const sticks = stickerPlacements(cells.map((ci) => images[ci]?.id ?? `x${ci}`), settings, layout);
+    for (let idx = 0; idx < cells.length; idx++) {
+      const img = images[cells[idx]];
+      if (!img) continue;
+      const st = sticks[idx];
+      const el = await loadImage(img.url);
+      const badge = renderBadge(el, settings, img.offsetX, img.offsetY, img.color, s, s, s, s);
+      ctx.save();
+      ctx.translate(st.cx * DPI, st.cy * DPI);
+      ctx.rotate((st.angle * Math.PI) / 180);
+      ctx.scale(st.scale, st.scale);
+      ctx.drawImage(badge, (-s / 2) * DPI, (-s / 2) * DPI, s * DPI, s * DPI);
+      ctx.restore();
+    }
+    drawCaption();
+    return canvas;
+  }
+
+  const pageRows = Math.max(1, Math.ceil(cells.length / columns));
+  const partial = cells.length < columns;
+  const gapX = partial ? 0 : Math.max(0, (usableW - columns * cellW) / (columns + 1));
+  const gapY = partial ? 0 : Math.max(0, (usableH - pageRows * cellH) / (pageRows + 1));
+  const boxH0 = settings.bands > 0 ? cellH * 0.86 : cellH;
+  const boxW = isOriginal ? cellW : Math.min(cellW, boxH0);
+  const boxH = isOriginal ? boxH0 : Math.min(cellW, boxH0);
+  const boxMin = Math.min(boxW, boxH);
+
+  for (let idx = 0; idx < cells.length; idx++) {
+    const img = images[cells[idx]];
+    if (!img) continue;
+    const col = idx % columns;
+    const row = Math.floor(idx / columns);
+    const x = layout.marginIn + gapX * (col + 1) + cellW * col;
+    const y = layout.marginIn + gapY * (row + 1) + cellH * row;
+    const el = await loadImage(img.url);
+    const badge = renderBadge(el, settings, img.offsetX, img.offsetY, img.color, cellW, cellH, boxW, boxH);
+    ctx.drawImage(badge, Math.round(x * DPI), Math.round(y * DPI), Math.round(cellW * DPI), Math.round(cellH * DPI));
+
+    if (settings.showNames) {
+      const name = extractName(img.name);
+      if (name) {
+        const nx = x + cellW / 2;
+        const ny = y + (cellH - boxH) / 2 + boxH * 0.92;
+        ctx.save();
+        ctx.fillStyle = "#000000";
+        ctx.textAlign = "center";
+        ctx.font = `800 ${boxMin * (settings.nameSize / 100) * DPI}px ui-sans-serif, system-ui, sans-serif`;
+        ctx.lineWidth = boxMin * (settings.nameSize / 100) * DPI * 0.18;
+        ctx.strokeStyle = "#ffffff";
+        ctx.strokeText(name, nx * DPI, ny * DPI);
+        ctx.fillText(name, nx * DPI, ny * DPI);
+        ctx.restore();
+      }
+    }
+  }
+
+  if (settings.cutGuides) {
+    const xs = Array.from({ length: columns + 1 }, (_, i) => layout.marginIn + gapX / 2 + i * (cellW + gapX));
+    const ys = Array.from({ length: pageRows + 1 }, (_, j) => layout.marginIn + gapY / 2 + j * (cellH + gapY));
+    ctx.save();
+    ctx.strokeStyle = "#000000";
+    ctx.lineWidth = 0.01 * DPI;
+    for (const gx of xs) { ctx.beginPath(); ctx.moveTo(gx * DPI, ys[0] * DPI); ctx.lineTo(gx * DPI, ys[ys.length - 1] * DPI); ctx.stroke(); }
+    for (const gy of ys) { ctx.beginPath(); ctx.moveTo(xs[0] * DPI, gy * DPI); ctx.lineTo(xs[xs.length - 1] * DPI, gy * DPI); ctx.stroke(); }
+    ctx.restore();
+  }
+
+  drawCaption();
+  return canvas;
+}
+
+/** Horizontal mirror of a canvas (for the double-sided back page). */
+function mirrorCanvasH(src: HTMLCanvasElement): HTMLCanvasElement {
+  const out = document.createElement("canvas");
+  out.width = src.width;
+  out.height = src.height;
+  const c = out.getContext("2d")!;
+  c.translate(src.width, 0);
+  c.scale(-1, 1);
+  c.drawImage(src, 0, 0);
+  return out;
+}
+
 /**
  * Export each page as a PNG (one file per page). Same layout math as the PDF,
  * drawn onto a full-page canvas at print DPI.
@@ -180,112 +300,9 @@ export async function exportPng(
   caption = "",
   filename = "badges.pdf"
 ): Promise<void> {
-  const { paperW, paperH, columns, cellW, cellH } = layout;
-  const usableW = paperW - layout.marginIn * 2;
-  const usableH = paperH - layout.marginIn * 2;
   const base = filename.replace(/\.(pdf|png)$/i, "");
-  const isOriginal = settings.shape === "original";
-
   for (let p = 0; p < pages.length; p++) {
-    const cells = pages[p];
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.round(paperW * DPI);
-    canvas.height = Math.round(paperH * DPI);
-    const ctx = canvas.getContext("2d")!;
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // Sticker bomb: scatter each image (rotated/scaled), no grid, no cut lines.
-    if (settings.bomb) {
-      const s = settings.sizeIn;
-      const sticks = stickerPlacements(cells.length, settings, layout);
-      for (let idx = 0; idx < cells.length; idx++) {
-        const img = images[cells[idx]];
-        if (!img) continue;
-        const st = sticks[idx];
-        const el = await loadImage(img.url);
-        const badge = renderBadge(el, settings, img.offsetX, img.offsetY, img.color, s, s, s, s);
-        ctx.save();
-        ctx.translate(st.cx * DPI, st.cy * DPI);
-        ctx.rotate((st.angle * Math.PI) / 180);
-        ctx.scale(st.scale, st.scale);
-        ctx.drawImage(badge, (-s / 2) * DPI, (-s / 2) * DPI, s * DPI, s * DPI);
-        ctx.restore();
-      }
-      if (caption) {
-        ctx.save();
-        ctx.fillStyle = "#9aa0a6";
-        ctx.textAlign = "center";
-        ctx.font = `500 ${0.085 * DPI}px ui-sans-serif, system-ui, sans-serif`;
-        ctx.fillText(`${caption}  ·  Page ${p + 1} of ${pages.length}`, (paperW / 2) * DPI, (paperH - Math.max(0.16, layout.marginIn)) * DPI);
-        ctx.restore();
-      }
-      const suffixB = pages.length > 1 ? `-p${p + 1}` : "";
-      downloadBlob(await canvasToPng(canvas), `${base}${suffixB}.png`);
-      continue;
-    }
-
-    const pageRows = Math.max(1, Math.ceil(cells.length / columns));
-    const partial = cells.length < columns;
-    const gapX = partial ? 0 : Math.max(0, (usableW - columns * cellW) / (columns + 1));
-    const gapY = partial ? 0 : Math.max(0, (usableH - pageRows * cellH) / (pageRows + 1));
-    // Badge box within each cell. In Extra Large bands, inset the height so the
-    // shape stays inside its third; square/circle centre a square.
-    const boxH0 = settings.bands > 0 ? cellH * 0.86 : cellH;
-    const boxW = isOriginal ? cellW : Math.min(cellW, boxH0);
-    const boxH = isOriginal ? boxH0 : Math.min(cellW, boxH0);
-    const boxMin = Math.min(boxW, boxH);
-
-    for (let idx = 0; idx < cells.length; idx++) {
-      const img = images[cells[idx]];
-      if (!img) continue;
-      const col = idx % columns;
-      const row = Math.floor(idx / columns);
-      const x = layout.marginIn + gapX * (col + 1) + cellW * col;
-      const y = layout.marginIn + gapY * (row + 1) + cellH * row;
-      const el = await loadImage(img.url);
-      const badge = renderBadge(el, settings, img.offsetX, img.offsetY, img.color, cellW, cellH, boxW, boxH);
-      ctx.drawImage(badge, Math.round(x * DPI), Math.round(y * DPI), Math.round(cellW * DPI), Math.round(cellH * DPI));
-
-      if (settings.showNames) {
-        const name = extractName(img.name);
-        if (name) {
-          const nx = x + cellW / 2;
-          const ny = y + (cellH - boxH) / 2 + boxH * 0.92;
-          ctx.save();
-          ctx.fillStyle = "#000000";
-          ctx.textAlign = "center";
-          ctx.font = `800 ${boxMin * (settings.nameSize / 100) * DPI}px ui-sans-serif, system-ui, sans-serif`;
-          ctx.lineWidth = boxMin * (settings.nameSize / 100) * DPI * 0.18;
-          ctx.strokeStyle = "#ffffff";
-          ctx.strokeText(name, nx * DPI, ny * DPI);
-          ctx.fillText(name, nx * DPI, ny * DPI);
-          ctx.restore();
-        }
-      }
-    }
-
-    // Straight cut lines (same as PDF).
-    if (settings.cutGuides) {
-      const xs = Array.from({ length: columns + 1 }, (_, i) => layout.marginIn + gapX / 2 + i * (cellW + gapX));
-      const ys = Array.from({ length: pageRows + 1 }, (_, j) => layout.marginIn + gapY / 2 + j * (cellH + gapY));
-      ctx.save();
-      ctx.strokeStyle = "#000000";
-      ctx.lineWidth = 0.01 * DPI;
-      for (const gx of xs) { ctx.beginPath(); ctx.moveTo(gx * DPI, ys[0] * DPI); ctx.lineTo(gx * DPI, ys[ys.length - 1] * DPI); ctx.stroke(); }
-      for (const gy of ys) { ctx.beginPath(); ctx.moveTo(xs[0] * DPI, gy * DPI); ctx.lineTo(xs[xs.length - 1] * DPI, gy * DPI); ctx.stroke(); }
-      ctx.restore();
-    }
-
-    if (caption) {
-      ctx.save();
-      ctx.fillStyle = "#9aa0a6";
-      ctx.textAlign = "center";
-      ctx.font = `500 ${0.085 * DPI}px ui-sans-serif, system-ui, sans-serif`;
-      ctx.fillText(`${caption}  ·  Page ${p + 1} of ${pages.length}`, (paperW / 2) * DPI, (paperH - Math.max(0.16, layout.marginIn)) * DPI);
-      ctx.restore();
-    }
-
+    const canvas = await drawPageToCanvas(pages[p], images, layout, settings, caption, p, pages.length);
     const suffix = pages.length > 1 ? `-p${p + 1}` : "";
     downloadBlob(await canvasToPng(canvas), `${base}${suffix}.png`);
   }
@@ -322,38 +339,22 @@ export async function exportPdf(
     if (p > 0) pdf.addPage([paperW, paperH], orientation);
     const cells = pages[p];
 
+    // Double-sided: render the page to a canvas, place it, then add a horizontally
+    // mirrored back page so duplex printing (flip on long edge) lines the same
+    // badge up front and back - for laminating badges readable on both sides.
+    if (settings.doubleSided) {
+      const front = await drawPageToCanvas(cells, images, layout, settings, caption, p, pages.length);
+      pdf.addImage(front.toDataURL("image/jpeg", 0.9), "JPEG", 0, 0, paperW, paperH, undefined, "FAST");
+      pdf.addPage([paperW, paperH], orientation);
+      const back = mirrorCanvasH(front);
+      pdf.addImage(back.toDataURL("image/jpeg", 0.9), "JPEG", 0, 0, paperW, paperH, undefined, "FAST");
+      continue;
+    }
+
     // Sticker bomb: render the whole scattered page to a canvas and place it, so
     // the PDF matches the PNG/preview exactly (rotation + overlap).
     if (settings.bomb) {
-      const s = settings.sizeIn;
-      const cv = document.createElement("canvas");
-      cv.width = Math.round(paperW * DPI);
-      cv.height = Math.round(paperH * DPI);
-      const c2 = cv.getContext("2d")!;
-      c2.fillStyle = "#ffffff";
-      c2.fillRect(0, 0, cv.width, cv.height);
-      const sticks = stickerPlacements(cells.length, settings, layout);
-      for (let idx = 0; idx < cells.length; idx++) {
-        const img = images[cells[idx]];
-        if (!img) continue;
-        const st = sticks[idx];
-        const el = await loadImage(img.url);
-        const badge = renderBadge(el, settings, img.offsetX, img.offsetY, img.color, s, s, s, s);
-        c2.save();
-        c2.translate(st.cx * DPI, st.cy * DPI);
-        c2.rotate((st.angle * Math.PI) / 180);
-        c2.scale(st.scale, st.scale);
-        c2.drawImage(badge, (-s / 2) * DPI, (-s / 2) * DPI, s * DPI, s * DPI);
-        c2.restore();
-      }
-      if (caption) {
-        c2.save();
-        c2.fillStyle = "#9aa0a6";
-        c2.textAlign = "center";
-        c2.font = `500 ${0.085 * DPI}px ui-sans-serif, system-ui, sans-serif`;
-        c2.fillText(`${caption}  ·  Page ${p + 1} of ${pages.length}`, (paperW / 2) * DPI, (paperH - Math.max(0.16, layout.marginIn)) * DPI);
-        c2.restore();
-      }
+      const cv = await drawPageToCanvas(cells, images, layout, settings, caption, p, pages.length);
       pdf.addImage(cv.toDataURL("image/jpeg", 0.9), "JPEG", 0, 0, paperW, paperH, undefined, "FAST");
       continue;
     }

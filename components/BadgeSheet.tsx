@@ -33,6 +33,7 @@ export function BadgeSheet({
   settings,
   scale,
   onSetOffset,
+  onBringToFront,
   totalPages,
   caption,
   onCycleUnit,
@@ -44,6 +45,8 @@ export function BadgeSheet({
   settings: Settings;
   scale: number;
   onSetOffset?: (id: string, x: number, y: number) => void;
+  /** bomb mode: bring the clicked sticker (image index) to the front */
+  onBringToFront?: (imageIndex: number) => void;
   totalPages: number;
   caption: string;
   onCycleUnit?: () => void;
@@ -73,9 +76,17 @@ export function BadgeSheet({
   const boxH = isOriginal ? boxH0 : Math.min(cw, boxH0);
   const boxMin = Math.min(boxW, boxH);
 
-  // Sticker bomb: scatter every image across the page (random pos/rotation/overlap).
+  // Sticker bomb: scatter every image across the page. Placement is keyed by image
+  // id (stable pile shape); draw order = page order, so bringing an image to the
+  // front = moving it last.
   const bomb = settings.bomb;
-  const stickers = bomb ? stickerPlacements(page.length, settings, layout) : [];
+  const stickers = bomb
+    ? stickerPlacements(
+        page.map((idx) => images[idx]?.id ?? `x${idx}`),
+        settings,
+        layout
+      )
+    : [];
 
   const cellPx = ch * 96 * scale;
   const canPan = settings.fit === "cover" && !isOriginal && !bomb && !!onSetOffset;
@@ -285,6 +296,8 @@ export function BadgeSheet({
             return (
               <div
                 key={i}
+                onClick={onBringToFront ? () => onBringToFront(page[i]) : undefined}
+                title={onBringToFront ? "Click to bring to front" : undefined}
                 style={{
                   position: "absolute",
                   left: `${st.cx.toFixed(3)}in`,
@@ -294,6 +307,7 @@ export function BadgeSheet({
                   transform: `translate(-50%,-50%) rotate(${st.angle.toFixed(2)}deg) scale(${st.scale.toFixed(3)})`,
                   transformOrigin: "center center",
                   zIndex: i,
+                  cursor: onBringToFront ? "pointer" : "default",
                   filter: "drop-shadow(0 0.02in 0.025in rgba(0,0,0,0.28))",
                 }}
               >

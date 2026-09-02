@@ -95,6 +95,10 @@ export type Settings = {
   bombScatter: number;
   /** overlap / packing density, 0-100 (higher = tighter + more overlap) */
   bombOverlap: number;
+  /** PDF only: after each page, add a horizontally-mirrored copy so duplex
+   *  printing (flip on long edge) puts the same badge on front and back - for
+   *  laminating badges that read correctly on both sides. */
+  doubleSided: boolean;
   cutGuides: boolean;
   /** ruler bars + light measurement grid overlay (screen only), toggled together */
   showGrid: boolean;
@@ -123,6 +127,7 @@ export const DEFAULT_SETTINGS: Settings = {
   bombRotate: 55,
   bombScatter: 70, // Spread
   bombOverlap: 30, // Overlap
+  doubleSided: false,
   cutGuides: true,
   showGrid: true,
   rulerUnit: "in",
