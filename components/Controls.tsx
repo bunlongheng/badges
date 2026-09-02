@@ -139,13 +139,12 @@ export function Controls({
                 type="button"
                 onClick={() => applyMode(m.id)}
                 className={[
-                  "flex flex-col items-center gap-0.5 rounded-xl border py-2.5 text-xs font-semibold transition",
+                  "flex items-center justify-center rounded-xl border py-2.5 text-sm font-semibold transition",
                   active
                     ? "border-brand-500 bg-brand-50 text-brand-700 ring-1 ring-brand-500"
                     : "border-zinc-200 text-zinc-700 hover:border-zinc-400 hover:ring-1 hover:ring-zinc-300",
                 ].join(" ")}
               >
-                <span className="text-lg leading-none">{m.icon}</span>
                 {m.label}
               </button>
             );
