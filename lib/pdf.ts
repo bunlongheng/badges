@@ -276,18 +276,6 @@ async function drawPageToCanvas(
   return canvas;
 }
 
-/** Horizontal mirror of a canvas (for the double-sided back page). */
-function mirrorCanvasH(src: HTMLCanvasElement): HTMLCanvasElement {
-  const out = document.createElement("canvas");
-  out.width = src.width;
-  out.height = src.height;
-  const c = out.getContext("2d")!;
-  c.translate(src.width, 0);
-  c.scale(-1, 1);
-  c.drawImage(src, 0, 0);
-  return out;
-}
-
 /**
  * Export each page as a PNG (one file per page). Same layout math as the PDF,
  * drawn onto a full-page canvas at print DPI.
@@ -343,11 +331,13 @@ export async function exportPdf(
     // mirrored back page so duplex printing (flip on long edge) lines the same
     // badge up front and back - for laminating badges readable on both sides.
     if (settings.doubleSided) {
-      const front = await drawPageToCanvas(cells, images, layout, settings, caption, p, pages.length);
-      pdf.addImage(front.toDataURL("image/jpeg", 0.9), "JPEG", 0, 0, paperW, paperH, undefined, "FAST");
+      // Back page is an IDENTICAL copy (not mirrored): on a cut-out, laminated
+      // badge you view each side directly, so both sides must print readable.
+      const page = await drawPageToCanvas(cells, images, layout, settings, caption, p, pages.length);
+      const data = page.toDataURL("image/jpeg", 0.9);
+      pdf.addImage(data, "JPEG", 0, 0, paperW, paperH, undefined, "FAST");
       pdf.addPage([paperW, paperH], orientation);
-      const back = mirrorCanvasH(front);
-      pdf.addImage(back.toDataURL("image/jpeg", 0.9), "JPEG", 0, 0, paperW, paperH, undefined, "FAST");
+      pdf.addImage(data, "JPEG", 0, 0, paperW, paperH, undefined, "FAST");
       continue;
     }
 
