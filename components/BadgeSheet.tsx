@@ -280,6 +280,8 @@ export function BadgeSheet({
             if (!img) return null;
             const s = settings.sizeIn;
             const stickerRadius = cellRadius(s, settings.shape);
+            // Sticker bomb always gives each sticker a >=10% white margin (die-cut look).
+            const stickerPad = Math.max(totalPadPct, 10);
             return (
               <div
                 key={i}
@@ -302,7 +304,7 @@ export function BadgeSheet({
                     borderRadius: stickerRadius,
                     overflow: "hidden",
                     background: "#ffffff",
-                    padding: totalPadPct ? `${(s * totalPadPct) / 100}in` : 0,
+                    padding: `${(s * stickerPad) / 100}in`,
                     boxSizing: "border-box",
                   }}
                 >
