@@ -63,10 +63,10 @@ export const BORDERS: { id: Border; label: string }[] = [
 // Top-level workflow modes. Each applies a preset bundle (see MODE_PRESETS) but
 // every individual control can still be tweaked afterwards.
 export type Mode = "badges" | "sheet" | "bomb";
-export const MODES: { id: Mode; label: string; icon: string }[] = [
-  { id: "badges", label: "Badges", icon: "🔵" },
-  { id: "sheet", label: "Sheet", icon: "🖼️" },
-  { id: "bomb", label: "Bomb", icon: "💣" },
+export const MODES: { id: Mode; label: string }[] = [
+  { id: "badges", label: "Badges" },
+  { id: "sheet", label: "Sheet" },
+  { id: "bomb", label: "Bomb" },
 ];
 
 export type Settings = {
@@ -160,11 +160,10 @@ export const MODE_PRESETS: Record<Mode, Partial<Settings>> = {
     showNames: true,
     nameSize: 4,
   },
-  // Big originals on a sheet: Large, keep each image's own shape, whole logo.
+  // Sheet: Extra Large 3-band layout, keep each image's own shape, whole logo.
   sheet: {
     bomb: false,
-    bands: 0,
-    sizeIn: SIZE_LARGE_IN,
+    bands: XL_BANDS,
     shape: "original",
     fit: "contain",
     border: "none",
