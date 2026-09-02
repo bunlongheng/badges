@@ -18,7 +18,7 @@ import { filesFromDataTransfer, expandZips } from "@/lib/readDrop";
 export default function Home() {
   const { images, add, remove, move, clear, setOffset, converting, notice, clearNotice } =
     useImages();
-  const { settings, update, reset } = useSettings();
+  const { settings, update, applyMode, reset } = useSettings();
   const { ref: stageRef, width } = useMeasure<HTMLDivElement>();
   const sheetsRef = useRef<HTMLDivElement>(null);
   const addInputRef = useRef<HTMLInputElement>(null);
@@ -26,6 +26,7 @@ export default function Home() {
   const [name, setName] = useState(""); // goes into the PDF filename
   const [flash, setFlash] = useState(0);
   const [mobileOpen, setMobileOpen] = useState(false); // phone: settings + photos drawer
+  const [photosOpen, setPhotosOpen] = useState(false); // phone: collapse the photo grid
   const [exportOpen, setExportOpen] = useState(false); // Download: PNG vs PDF menu
   const [drag, setDrag] = useState<{ active: boolean; count: number }>({
     active: false,
@@ -541,17 +542,26 @@ export default function Home() {
               </div>
             )}
 
-            {/* Phone: collapsible photos + controls */}
+            {/* Phone: mode presets first (short drawer), photos collapsed by default */}
             {mobileOpen && (
               <div className="mb-4 space-y-4 lg:hidden">
                 <div className="rounded-2xl border border-zinc-200 bg-white p-4">
-                  <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                    Photos
-                  </h2>
-                  <ImageTray images={images} onRemove={remove} onMove={move} onClear={clear} />
+                  <Controls settings={settings} update={update} applyMode={applyMode} reset={reset} mobile />
                 </div>
                 <div className="rounded-2xl border border-zinc-200 bg-white p-4">
-                  <Controls settings={settings} update={update} reset={reset} />
+                  <button
+                    type="button"
+                    onClick={() => setPhotosOpen((o) => !o)}
+                    className="flex w-full items-center justify-between text-xs font-semibold uppercase tracking-wide text-zinc-500"
+                  >
+                    <span>Photos ({images.length})</span>
+                    <span className="text-zinc-400">{photosOpen ? "▲ hide" : "▾ show"}</span>
+                  </button>
+                  {photosOpen && (
+                    <div className="mt-3">
+                      <ImageTray images={images} onRemove={remove} onMove={move} onClear={clear} />
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -605,7 +615,7 @@ export default function Home() {
 
             {/* Right panel: controls (desktop only) */}
             <aside className="no-print hidden rounded-2xl border border-zinc-200 bg-white p-4 lg:order-3 lg:sticky lg:top-20 lg:block">
-              <Controls settings={settings} update={update} reset={reset} />
+              <Controls settings={settings} update={update} applyMode={applyMode} reset={reset} />
             </aside>
           </div>
           </>

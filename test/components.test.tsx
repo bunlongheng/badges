@@ -26,7 +26,7 @@ describe("Controls", () => {
   it("updates shape when a segmented option is clicked", async () => {
     const update = vi.fn();
     render(
-      <Controls settings={DEFAULT_SETTINGS} update={update} reset={vi.fn()} />
+      <Controls settings={DEFAULT_SETTINGS} update={update} applyMode={vi.fn()} reset={vi.fn()} />
     );
     await userEvent.click(screen.getByRole("button", { name: "Circle" }));
     expect(update).toHaveBeenCalledWith("shape", "circle");
@@ -35,7 +35,7 @@ describe("Controls", () => {
   it("updates the border when a segmented option is clicked", async () => {
     const update = vi.fn();
     render(
-      <Controls settings={DEFAULT_SETTINGS} update={update} reset={vi.fn()} />
+      <Controls settings={DEFAULT_SETTINGS} update={update} applyMode={vi.fn()} reset={vi.fn()} />
     );
     await userEvent.click(screen.getByRole("button", { name: "Auto" }));
     expect(update).toHaveBeenCalledWith("border", "auto");
@@ -44,7 +44,7 @@ describe("Controls", () => {
   it("calls reset", async () => {
     const reset = vi.fn();
     render(
-      <Controls settings={DEFAULT_SETTINGS} update={vi.fn()} reset={reset} />
+      <Controls settings={DEFAULT_SETTINGS} update={vi.fn()} applyMode={vi.fn()} reset={reset} />
     );
     await userEvent.click(screen.getByRole("button", { name: /reset to defaults/i }));
     expect(reset).toHaveBeenCalled();
