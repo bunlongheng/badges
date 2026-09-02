@@ -589,6 +589,9 @@ export default function Home() {
                       settings={settings}
                       scale={scale}
                       onSetOffset={setOffset}
+                      onBringToFront={
+                        settings.bomb ? (idx) => move(idx, images.length - 1) : undefined
+                      }
                       totalPages={pages.length}
                       caption={caption}
                       onCycleUnit={() =>

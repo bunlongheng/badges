@@ -247,6 +247,19 @@ export function Controls({
           checked={settings.cutGuides}
           onChange={(v) => update("cutGuides", v)}
         />
+        <div>
+          <Toggle
+            label="Double-sided (laminate)"
+            checked={settings.doubleSided}
+            onChange={(v) => update("doubleSided", v)}
+          />
+          {settings.doubleSided && (
+            <p className="mt-1 pl-0.5 text-[11px] leading-snug text-zinc-400">
+              PDF adds a mirrored back page. Print double-sided, flip on long edge -
+              same badge front &amp; back.
+            </p>
+          )}
+        </div>
         <Toggle
           label="Show ruler & grid"
           checked={settings.showGrid}
