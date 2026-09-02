@@ -159,6 +159,9 @@ export const MODE_PRESETS: Record<Mode, Partial<Settings>> = {
     padding: false,
     showNames: true,
     nameSize: 4,
+    cutGuides: true,
+    showGrid: true,
+    doubleSided: false,
   },
   // Sheet: Extra Large 3-band layout, keep each image's own shape, whole logo.
   sheet: {
@@ -169,6 +172,9 @@ export const MODE_PRESETS: Record<Mode, Partial<Settings>> = {
     border: "none",
     padding: false,
     showNames: false,
+    cutGuides: true,
+    showGrid: true,
+    doubleSided: false,
   },
   // Sticker bomb: scattered pile of small originals, everything else off.
   bomb: {
