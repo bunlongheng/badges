@@ -169,7 +169,10 @@ function canvasToPng(canvas: HTMLCanvasElement): Promise<Blob> {
 }
 
 /** Draw one full page (grid or sticker-bomb) onto a print-DPI canvas. Shared by
- *  the PNG export and the double-sided PDF (which also needs a mirrored copy). */
+ *  the PNG export and the double-sided PDF. With `mirror`, badge POSITIONS are
+ *  mirrored about the vertical center line but each image is drawn unmirrored -
+ *  a long-edge duplex flip then puts every badge exactly behind itself, and both
+ *  sides stay readable. */
 async function drawPageToCanvas(
   cells: number[],
   images: BadgeImage[],
@@ -177,7 +180,8 @@ async function drawPageToCanvas(
   settings: Settings,
   caption: string,
   pageIndex: number,
-  totalPages: number
+  totalPages: number,
+  mirror = false
 ): Promise<HTMLCanvasElement> {
   const { paperW, paperH, columns, cellW, cellH } = layout;
   const usableW = paperW - layout.marginIn * 2;
@@ -213,8 +217,8 @@ async function drawPageToCanvas(
       const el = await loadImage(img.url);
       const badge = renderBadge(el, settings, img.offsetX, img.offsetY, img.color, s, s, s, s);
       ctx.save();
-      ctx.translate(st.cx * DPI, st.cy * DPI);
-      ctx.rotate((st.angle * Math.PI) / 180);
+      ctx.translate((mirror ? paperW - st.cx : st.cx) * DPI, st.cy * DPI);
+      ctx.rotate(((mirror ? -st.angle : st.angle) * Math.PI) / 180);
       ctx.scale(st.scale, st.scale);
       ctx.drawImage(badge, (-s / 2) * DPI, (-s / 2) * DPI, s * DPI, s * DPI);
       ctx.restore();
@@ -237,7 +241,8 @@ async function drawPageToCanvas(
     if (!img) continue;
     const col = idx % columns;
     const row = Math.floor(idx / columns);
-    const x = layout.marginIn + gapX * (col + 1) + cellW * col;
+    const x0 = layout.marginIn + gapX * (col + 1) + cellW * col;
+    const x = mirror ? paperW - x0 - cellW : x0;
     const y = layout.marginIn + gapY * (row + 1) + cellH * row;
     const el = await loadImage(img.url);
     const badge = renderBadge(el, settings, img.offsetX, img.offsetY, img.color, cellW, cellH, boxW, boxH);
@@ -262,7 +267,10 @@ async function drawPageToCanvas(
   }
 
   if (settings.cutGuides) {
-    const xs = Array.from({ length: columns + 1 }, (_, i) => layout.marginIn + gapX / 2 + i * (cellW + gapX));
+    const xs = Array.from({ length: columns + 1 }, (_, i) => {
+      const gx = layout.marginIn + gapX / 2 + i * (cellW + gapX);
+      return mirror ? paperW - gx : gx;
+    });
     const ys = Array.from({ length: pageRows + 1 }, (_, j) => layout.marginIn + gapY / 2 + j * (cellH + gapY));
     ctx.save();
     ctx.strokeStyle = "#000000";
@@ -327,17 +335,15 @@ export async function exportPdf(
     if (p > 0) pdf.addPage([paperW, paperH], orientation);
     const cells = pages[p];
 
-    // Double-sided: render the page to a canvas, place it, then add a horizontally
-    // mirrored back page so duplex printing (flip on long edge) lines the same
-    // badge up front and back - for laminating badges readable on both sides.
+    // Double-sided: after the front page, add a back page with mirrored badge
+    // POSITIONS (images stay unmirrored). Duplex printing with flip on long
+    // edge then puts every badge exactly behind itself, readable on both sides.
     if (settings.doubleSided) {
-      // Back page is an IDENTICAL copy (not mirrored): on a cut-out, laminated
-      // badge you view each side directly, so both sides must print readable.
-      const page = await drawPageToCanvas(cells, images, layout, settings, caption, p, pages.length);
-      const data = page.toDataURL("image/jpeg", 0.9);
-      pdf.addImage(data, "JPEG", 0, 0, paperW, paperH, undefined, "FAST");
+      const front = await drawPageToCanvas(cells, images, layout, settings, caption, p, pages.length);
+      pdf.addImage(front.toDataURL("image/jpeg", 0.9), "JPEG", 0, 0, paperW, paperH, undefined, "FAST");
+      const back = await drawPageToCanvas(cells, images, layout, settings, caption, p, pages.length, true);
       pdf.addPage([paperW, paperH], orientation);
-      pdf.addImage(data, "JPEG", 0, 0, paperW, paperH, undefined, "FAST");
+      pdf.addImage(back.toDataURL("image/jpeg", 0.9), "JPEG", 0, 0, paperW, paperH, undefined, "FAST");
       continue;
     }
 
