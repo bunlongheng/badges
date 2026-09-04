@@ -109,6 +109,28 @@ export function computeLayout(settings: Settings): SheetLayout {
   };
 }
 
+/**
+ * Badge x position in DEVICE pixels for the full-page canvas render.
+ *
+ * Double-sided printing puts the back page behind the front, so a back badge has
+ * to land on exactly the same pixel column as its front badge. Mirroring the
+ * position in inches and rounding that independently (`round((paperW - x - cell) * dpi)`)
+ * can land 1px away from `round(x * dpi)` - paper- and size-dependent, so most
+ * layouts looked fine while Nano, A4 and partial pages were consistently off.
+ * Mirroring the already-rounded FRONT pixel instead is exact by construction.
+ */
+export function badgeXPx(
+  xIn: number,
+  cellIn: number,
+  paperWIn: number,
+  dpi: number,
+  mirror: boolean
+): number {
+  const frontPx = Math.round(xIn * dpi);
+  if (!mirror) return frontPx;
+  return Math.round(paperWIn * dpi) - frontPx - Math.round(cellIn * dpi);
+}
+
 /** Number of pages needed for `count` badges at `perPage`. */
 export function pageCount(count: number, perPage: number): number {
   if (perPage <= 0) return 0;

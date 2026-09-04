@@ -1,5 +1,5 @@
 import type { BadgeImage } from "./useImages";
-import type { SheetLayout } from "./layout";
+import { badgeXPx, type SheetLayout } from "./layout";
 import type { Settings } from "./presets";
 import { stickerPlacements } from "./bomb";
 import { extractName } from "./text";
@@ -242,16 +242,19 @@ async function drawPageToCanvas(
     const col = idx % columns;
     const row = Math.floor(idx / columns);
     const x0 = layout.marginIn + gapX * (col + 1) + cellW * col;
-    const x = mirror ? paperW - x0 - cellW : x0;
     const y = layout.marginIn + gapY * (row + 1) + cellH * row;
     const el = await loadImage(img.url);
     const badge = renderBadge(el, settings, img.offsetX, img.offsetY, img.color, cellW, cellH, boxW, boxH);
-    ctx.drawImage(badge, Math.round(x * DPI), Math.round(y * DPI), Math.round(cellW * DPI), Math.round(cellH * DPI));
+    // Mirror in device pixels, not inches - see badgeXPx.
+    const wpx = Math.round(cellW * DPI);
+    const xpx = badgeXPx(x0, cellW, paperW, DPI, mirror);
+    ctx.drawImage(badge, xpx, Math.round(y * DPI), wpx, Math.round(cellH * DPI));
 
     if (settings.showNames) {
       const name = extractName(img.name);
       if (name) {
-        const nx = x + cellW / 2;
+        // centre the label on the badge as actually drawn, so it mirrors with it
+        const nx = (xpx + wpx / 2) / DPI;
         const ny = y + (cellH - boxH) / 2 + boxH * 0.92;
         ctx.save();
         ctx.fillStyle = "#000000";
