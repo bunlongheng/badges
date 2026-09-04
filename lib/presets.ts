@@ -139,7 +139,7 @@ export const DEFAULT_SETTINGS: Settings = {
   bombRotate: 55,
   bombScatter: 70, // Spread
   bombOverlap: 30, // Overlap
-  doubleSided: false,
+  doubleSided: true, // badges get laminated - default to printing both sides
   cutGuides: true,
   showGrid: true,
   rulerUnit: "in",
@@ -161,7 +161,7 @@ export const MODE_PRESETS: Record<Mode, Partial<Settings>> = {
     nameSize: 4,
     cutGuides: true,
     showGrid: true,
-    doubleSided: false,
+    doubleSided: true,
   },
   // Sheet: Extra Large 3-band layout, keep each image's own shape, whole logo.
   sheet: {
@@ -174,7 +174,7 @@ export const MODE_PRESETS: Record<Mode, Partial<Settings>> = {
     showNames: false,
     cutGuides: true,
     showGrid: true,
-    doubleSided: false,
+    doubleSided: true,
   },
   // Sticker bomb: scattered pile of small originals, everything else off.
   bomb: {
