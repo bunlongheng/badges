@@ -218,26 +218,6 @@ export function BadgeSheet({
       }}
       aria-label={`Page ${pageIndex + 1}${mirror ? " back" : ""}`}
     >
-      {settings.doubleSided && (
-      <span
-        className="no-print"
-        style={{
-          position: "absolute",
-          top: settings.showGrid ? R : 0,
-          left: settings.showGrid ? R : 0,
-          zIndex: 5,
-          margin: 6,
-          padding: "2px 7px",
-          borderRadius: 999,
-          font: "600 10px ui-sans-serif, system-ui, sans-serif",
-          letterSpacing: "0.04em",
-          color: mirror ? "#0e7490" : "#4f46e5",
-          background: mirror ? "rgba(207,250,254,0.92)" : "rgba(238,242,255,0.92)",
-        }}
-      >
-        {mirror ? "BACK (mirrored)" : "FRONT"}
-      </span>
-      )}
       {settings.showGrid && (
         <>
           <button
