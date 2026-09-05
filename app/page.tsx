@@ -589,9 +589,13 @@ export default function Home() {
             <section className="overflow-x-auto rounded-2xl border border-zinc-300 bg-zinc-100 p-3 sm:p-4 lg:order-2">
               <div ref={stageRef} className="print-root">
                 <div ref={sheetsRef} className="flex flex-col items-center gap-6">
-                  {pages.map((page, i) => (
+                  {/* Double-sided: show the real BACK page too (positions mirrored),
+                      so the front/back line-up can be checked before printing. */}
+                  {pages.flatMap((page, i) =>
+                    (settings.doubleSided ? [false, true] : [false]).map((back) => (
                     <BadgeSheet
-                      key={i}
+                      key={`${i}${back ? "b" : "f"}`}
+                      mirror={back}
                       page={page}
                       pageIndex={i}
                       images={images}
@@ -608,7 +612,8 @@ export default function Home() {
                         update("rulerUnit", settings.rulerUnit === "in" ? "cm" : "in")
                       }
                     />
-                  ))}
+                    ))
+                  )}
                 </div>
               </div>
             </section>
