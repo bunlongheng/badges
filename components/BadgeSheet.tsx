@@ -37,6 +37,7 @@ export function BadgeSheet({
   totalPages,
   caption,
   onCycleUnit,
+  mirror = false,
 }: {
   page: number[];
   pageIndex: number;
@@ -50,6 +51,8 @@ export function BadgeSheet({
   totalPages: number;
   caption: string;
   onCycleUnit?: () => void;
+  /** Draw the double-sided BACK page: positions mirrored, artwork unmirrored. */
+  mirror?: boolean;
 }) {
   const drag = useRef<{
     id: string;
@@ -163,7 +166,9 @@ export function BadgeSheet({
     gap: 0,
     justifyContent: partialPage ? "start" : "space-evenly",
     alignContent: partialPage ? "start" : "space-evenly",
-    transform: `scale(${scale})`,
+    // Back page: mirror the whole sheet about its vertical centre, exactly like
+    // the PDF's back page. Artwork below is counter-flipped so it stays readable.
+    transform: `scale(${scale})${mirror ? ` translateX(${layout.paperW}in) scaleX(-1)` : ""}`,
     transformOrigin: "top left",
     boxShadow: "0 10px 30px rgba(0,0,0,0.15)",
   };
@@ -211,7 +216,7 @@ export function BadgeSheet({
         paddingTop: settings.showGrid ? R : 0,
         paddingLeft: settings.showGrid ? R : 0,
       }}
-      aria-label={`Page ${pageIndex + 1}`}
+      aria-label={`Page ${pageIndex + 1}${mirror ? " back" : ""}`}
     >
       {settings.showGrid && (
         <>
@@ -318,6 +323,7 @@ export function BadgeSheet({
                     borderRadius: stickerRadius,
                     overflow: "hidden",
                     background: "#ffffff",
+                    transform: mirror ? "scaleX(-1)" : undefined,
                     padding: `${(s * stickerPad) / 100}in`,
                     boxSizing: "border-box",
                   }}
@@ -364,7 +370,14 @@ export function BadgeSheet({
             >
              {/* Badge box: the visible badge, centred in the (possibly wide) cell.
                  Square/circle are a centred square; "original" fills the whole cell. */}
-             <div style={{ position: "relative", width: `${boxW}in`, height: `${boxH}in` }}>
+             <div
+               style={{
+                 position: "relative",
+                 width: `${boxW}in`,
+                 height: `${boxH}in`,
+                 transform: mirror ? "scaleX(-1)" : undefined,
+               }}
+             >
               {/* Photo, clipped to the TRUE badge shape - it fills only up to the border.
                   Padding insets the artwork so tall crests get breathing room and
                   don't run into the cut edge. */}
@@ -539,6 +552,7 @@ export function BadgeSheet({
               color: "#9aa0a6",
               letterSpacing: "0.005in",
               whiteSpace: "nowrap",
+              transform: mirror ? "scaleX(-1)" : undefined,
             }}
           >
             {caption} · Page {pageIndex + 1} of {totalPages}
