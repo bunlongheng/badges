@@ -38,6 +38,7 @@ export function BadgeSheet({
   caption,
   onCycleUnit,
   mirror = false,
+  tint,
 }: {
   page: number[];
   pageIndex: number;
@@ -53,6 +54,9 @@ export function BadgeSheet({
   onCycleUnit?: () => void;
   /** Draw the double-sided BACK page: positions mirrored, artwork unmirrored. */
   mirror?: boolean;
+  /** Light table: draw every badge as a flat silhouette in this colour instead
+   *  of its photo, so front and back can be overlaid and compared as geometry. */
+  tint?: string;
 }) {
   const drag = useRef<{
     id: string;
@@ -381,6 +385,12 @@ export function BadgeSheet({
               {/* Photo, clipped to the TRUE badge shape - it fills only up to the border.
                   Padding insets the artwork so tall crests get breathing room and
                   don't run into the cut edge. */}
+              {tint && img ? (
+                // Light table: the badge's true outline, filled flat. No photo -
+                // the export does not mirror artwork, so only the SHAPE can be
+                // compared once the back sheet is flipped over.
+                <div style={{ position: "absolute", inset: 0, borderRadius: radius, background: tint }} />
+              ) : null}
               <div
                 style={{
                   position: "absolute",
@@ -390,6 +400,7 @@ export function BadgeSheet({
                   background: "#ffffff",
                   padding: totalPadPct ? `${(boxMin * totalPadPct) / 100}in` : 0,
                   boxSizing: "border-box",
+                  visibility: tint ? "hidden" : undefined,
                 }}
               >
                 {img ? (
@@ -530,7 +541,10 @@ export function BadgeSheet({
         )}
 
         {/* Stats caption printed at the bottom of the sheet itself - a white
-            pill with padding so it's never clipped or crowded by the last row. */}
+            pill with padding so it's never clipped or crowded by the last row.
+            Hidden on the light table: it is not mirrored, so overlaying the two
+            sheets would show it twice and read as a misalignment. */}
+        {!tint && (
         <div
           style={{
             position: "absolute",
@@ -558,6 +572,7 @@ export function BadgeSheet({
             {caption} · Page {pageIndex + 1} of {totalPages}
           </span>
         </div>
+        )}
       </div>
 
       {settings.showGrid && (

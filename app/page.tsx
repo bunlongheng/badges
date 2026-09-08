@@ -28,6 +28,12 @@ export default function Home() {
   const [mobileOpen, setMobileOpen] = useState(false); // phone: settings + photos drawer
   const [photosOpen, setPhotosOpen] = useState(false); // phone: collapse the photo grid
   const [exportOpen, setExportOpen] = useState(false); // Download: PNG vs PDF menu
+  // Light table: overlay the front sheet with the FLIPPED back sheet, so the
+  // front/back line-up can be seen rather than taken on trust.
+  const [lightTable, setLightTable] = useState(false);
+  // Simulated printer misregistration, in millimetres. The file is exact; a real
+  // duplex printer is not. This shows what its drift would actually look like.
+  const [driftMm, setDriftMm] = useState(0);
   const [drag, setDrag] = useState<{ active: boolean; count: number }>({
     active: false,
     count: 0,
@@ -587,11 +593,87 @@ export default function Home() {
 
             {/* Center panel: preview stage (first on phone) */}
             <section className="overflow-x-auto rounded-2xl border border-zinc-300 bg-zinc-100 p-3 sm:p-4 lg:order-2">
+              {settings.doubleSided && (
+                <div className="no-print mb-3 flex flex-wrap items-center gap-3 rounded-xl border border-zinc-200 bg-white px-3 py-2">
+                  <button
+                    type="button"
+                    onClick={() => setLightTable((v) => !v)}
+                    aria-pressed={lightTable}
+                    className={`inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-xs font-semibold transition ${
+                      lightTable
+                        ? "bg-brand-600 text-white"
+                        : "border border-zinc-200 text-zinc-700 hover:bg-zinc-100"
+                    }`}
+                  >
+                    Light table
+                  </button>
+                  {lightTable ? (
+                    <>
+                      <span className="text-[11px] text-zinc-500">
+                        Front <span className="font-semibold text-[#d62030]">red</span> over flipped back{" "}
+                        <span className="font-semibold text-[#00a8c8]">cyan</span>. Any colour showing is a gap.
+                      </span>
+                      <label className="ml-auto flex items-center gap-2 text-[11px] text-zinc-500">
+                        Printer drift
+                        <input
+                          type="range"
+                          min={0}
+                          max={2}
+                          step={0.1}
+                          value={driftMm}
+                          onChange={(e) => setDriftMm(+e.target.value)}
+                          className="h-1 w-28 accent-brand-600"
+                        />
+                        <span className="w-14 font-mono text-zinc-700">{driftMm.toFixed(1)} mm</span>
+                      </label>
+                    </>
+                  ) : (
+                    <span className="text-[11px] text-zinc-500">
+                      Overlay the front and the flipped back to check the line-up before printing.
+                    </span>
+                  )}
+                </div>
+              )}
               <div ref={stageRef} className="print-root">
                 <div ref={sheetsRef} className="flex flex-col items-center gap-6">
                   {/* Double-sided: show the real BACK page too (positions mirrored),
                       so the front/back line-up can be checked before printing. */}
-                  {pages.flatMap((page, i) =>
+                  {lightTable && settings.doubleSided
+                    ? pages.map((page, i) => {
+                        // Silhouettes only: the export deliberately does NOT mirror
+                        // the artwork, so once the back sheet is flipped its photos
+                        // no longer match. Shape is the only honest comparison.
+                        const flat = { ...settings, showNames: false, showGrid: false, cutGuides: false };
+                        const sheetProps = {
+                          page,
+                          pageIndex: i,
+                          images,
+                          layout,
+                          settings: flat,
+                          scale,
+                          totalPages: pages.length,
+                          caption: "",
+                        };
+                        return (
+                          <div key={`lt${i}`} style={{ position: "relative" }}>
+                            <BadgeSheet {...sheetProps} mirror={false} tint="#d62030" />
+                            <div
+                              style={{
+                                position: "absolute",
+                                inset: 0,
+                                // Flipping the sheet over, plus whatever the printer
+                                // gets wrong: driftMm at the sheet's on-screen scale.
+                                transform: `scaleX(-1) translateX(${(driftMm / 25.4) * 96 * scale}px)`,
+                                mixBlendMode: "multiply",
+                                pointerEvents: "none",
+                              }}
+                            >
+                              <BadgeSheet {...sheetProps} mirror tint="#00a8c8" />
+                            </div>
+                          </div>
+                        );
+                      })
+                    : pages.flatMap((page, i) =>
                     (settings.doubleSided ? [false, true] : [false]).map((back) => (
                     <BadgeSheet
                       key={`${i}${back ? "b" : "f"}`}
