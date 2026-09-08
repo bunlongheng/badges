@@ -18,7 +18,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "check:duplex": "node scripts/light-table.mjs"
   },
   "dependencies": {
     "fflate": "^0.8.3",

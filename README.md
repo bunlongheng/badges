@@ -34,6 +34,7 @@ Turn your photos into print-ready badge, button, and sticker sheets - drop image
 - **Drag a badge to reframe** its focal point so faces are never cropped out
 - **Drag to reorder** across pages; **duplicate photos are skipped** by content hash
 - **True-size ruler & 1-unit grid** (click to toggle inches/cm) plus black cut guides
+- **Light table** - overlay the front sheet with the flipped back sheet and see the double-sided line-up as colour fringes, with a printer-drift slider to compare against what a real duplex printer does
 - **Export** - an email-friendly, print-DPI PDF drawn per badge (size-prefixed filename), or native print
 - **Privacy-first** - all processing happens in the browser; no server, no upload
 
@@ -74,6 +75,45 @@ sized in real inches (so `@media print` prints at true size), and the PDF export
 draws every badge onto a canvas - cropped to its shape with its focal offset - and
 places it at exact inch coordinates, keeping the file email-friendly and sharp.
 
+## Checking the double-sided line-up
+
+Two independent checks, because "it looks fine" is not proof.
+
+**In the app** - turn on Double-sided, then hit **Light table**. The front sheet is
+drawn in red, the back sheet is flipped over and laid on top in cyan, and where
+they agree you get flat dark badges. Any red or cyan fringe *is* the offset. The
+photos are deliberately left out of this view: the export does not mirror artwork
+(that is the point - a face reads correctly on both sides), so once the back sheet
+is flipped its photos no longer match and only the shape can honestly be compared.
+Drag **Printer drift** to see what 0.5mm or 1mm of real printer misregistration
+would look like next to the file's own zero.
+
+**On the exported file** - run the light table over the PDF itself:
+
+```bash
+npm run check:duplex -- ~/Desktop/badges.pdf
+```
+
+It renders the real pages with poppler, correlates every badge against the back
+page, and reports the measured offset in pixels and millimetres, plus a proof PNG
+per sheet. It measures the file you are about to send, so it works on an old
+export too.
+
+How it measures matters. The cut guides are symmetric about the page centre, so
+mirroring maps them onto themselves - they look identical whether the mirror is
+right, wrong, or missing entirely, and prove nothing. Instead each cell's
+*unflipped* artwork is correlated against the back page: the same photo is drawn
+on both sides, so the match is near-exact and the peak says where the back badge
+actually sits, to a fraction of a pixel, trusting none of the layout code.
+
+Sub-pixel residue is JPEG noise, not a shift - a real error shows up as a whole
+pixel with the same sign on every badge. For scale: 1px at 240 DPI is 0.106mm,
+while a consumer duplex printer's front-to-back registration is typically off by
+0.5-1.5mm. The file is the precise part; the printer is not.
+
+**Print with: Actual size / 100% scale (never "Fit to page" or "Shrink oversized
+pages"), two-sided, flip on LONG edge.**
+
 ## Tech stack
 
 - [Next.js 16](https://nextjs.org) (App Router) + React 19 + TypeScript (strict)
@@ -103,6 +143,7 @@ Open http://localhost:3007 and drop in some photos (or click "try an example").
 | `npm run build` | Production build |
 | `npm start` | Serve the production build |
 | `npm test` | Run the unit + component tests |
+| `npm run check:duplex -- <file.pdf>` | Measure a double-sided export's front/back line-up |
 | `npm run typecheck` | TypeScript type-check |
 | `npm run lint` | ESLint |
 
