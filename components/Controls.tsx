@@ -294,9 +294,7 @@ export function Controls({
           />
           {settings.doubleSided && (
             <p className="mt-1 pl-0.5 text-[11px] leading-snug text-zinc-400">
-              PDF adds a mirrored back page, so each badge lands exactly behind
-              itself. Preview shows FRONT + BACK. Print double-sided, flip on
-              LONG edge, 100% scale (no fit-to-page).
+              Print both sides, flip on LONG edge, 100% scale.
             </p>
           )}
         </div>
