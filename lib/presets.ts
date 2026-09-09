@@ -110,6 +110,13 @@ export type Settings = {
    *  printing (flip on long edge) puts the same badge on front and back - for
    *  laminating badges that read correctly on both sides. */
   doubleSided: boolean;
+  /** Back-page registration nudge in MILLIMETRES, to cancel a printer's duplex
+   *  offset. Positive X moves the back page right, positive Y moves it down, as
+   *  the back page is printed. The file itself mirrors exactly; this exists
+   *  because the paper does not come back through the duplexer in exactly the
+   *  same place. Front page is never moved. */
+  backNudgeX: number;
+  backNudgeY: number;
   cutGuides: boolean;
   /** ruler bars + light measurement grid overlay (screen only), toggled together */
   showGrid: boolean;
@@ -140,6 +147,8 @@ export const DEFAULT_SETTINGS: Settings = {
   bombScatter: 70, // Spread
   bombOverlap: 30, // Overlap
   doubleSided: true, // badges get laminated - default to printing both sides
+  backNudgeX: 0,
+  backNudgeY: 0,
   cutGuides: true,
   showGrid: true,
   rulerUnit: "in",

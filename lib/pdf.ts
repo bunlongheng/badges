@@ -195,6 +195,17 @@ async function drawPageToCanvas(
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+  // Printer duplex registration: the back sheet does not re-enter the rollers in
+  // exactly the same place, so a perfectly mirrored file can still print a hair
+  // off. Shift the whole BACK page by the measured amount to cancel it. The
+  // front page is never touched, and 0/0 leaves the export byte-identical.
+  if (mirror && (settings.backNudgeX || settings.backNudgeY)) {
+    ctx.translate(
+      Math.round((settings.backNudgeX / 25.4) * DPI),
+      Math.round((settings.backNudgeY / 25.4) * DPI)
+    );
+  }
+
   const drawCaption = () => {
     if (!caption) return;
     ctx.save();

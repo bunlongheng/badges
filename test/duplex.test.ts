@@ -75,3 +75,30 @@ describe("double-sided badge alignment", () => {
     }
   });
 });
+
+describe("back-page registration nudge", () => {
+  // The nudge exists to cancel a PRINTER's duplex offset, so it must move the
+  // back page only, by exactly the millimetres asked for, and must be a no-op
+  // at zero (an untouched export has to stay identical).
+  const mmToPx = (mm: number) => Math.round((mm / 25.4) * DPI);
+
+  it("converts millimetres to device pixels at export DPI", () => {
+    expect(mmToPx(0)).toBe(0);
+    expect(mmToPx(1)).toBe(9); // 1mm at 240dpi = 9.45px
+    expect(mmToPx(-1)).toBe(-9);
+    expect(mmToPx(0.3)).toBe(3); // the ~3px offset seen on paper
+  });
+
+  it("defaults to no nudge, so exports are unchanged until asked", () => {
+    expect(DEFAULT_SETTINGS.backNudgeX).toBe(0);
+    expect(DEFAULT_SETTINGS.backNudgeY).toBe(0);
+  });
+
+  it("leaves the mirror maths untouched - the nudge is applied on top", () => {
+    const settings: Settings = { ...DEFAULT_SETTINGS, backNudgeX: 0.5, backNudgeY: -0.2 };
+    const layout = computeLayout(settings);
+    for (const p of pagePositions(settings, layout.perPage)) {
+      expect(p.pageWidthPx - (p.back + p.widthPx)).toBe(p.front);
+    }
+  });
+});

@@ -293,9 +293,59 @@ export function Controls({
             onChange={(v) => update("doubleSided", v)}
           />
           {settings.doubleSided && (
-            <p className="mt-1 pl-0.5 text-[11px] leading-snug text-zinc-400">
-              Print both sides, flip on LONG edge, 100% scale.
-            </p>
+            <>
+              <p className="mt-1 pl-0.5 text-[11px] leading-snug text-zinc-400">
+                Print both sides, flip on LONG edge, 100% scale, Portrait.
+              </p>
+              {/* Printer duplex registration. The file mirrors exactly; the paper
+                  does not come back through the rollers in exactly the same spot.
+                  Print one sheet, hold it to the light, dial the back page over. */}
+              <div className="mt-2 rounded-lg border border-zinc-200 bg-zinc-50 p-2.5">
+                <div className="text-[11px] font-semibold text-zinc-600">
+                  Back page nudge
+                </div>
+                <p className="mt-0.5 text-[10.5px] leading-snug text-zinc-400">
+                  Still off after printing? Measure how far the back sits from the
+                  front, then move the back page that far the other way.
+                </p>
+                <div className="mt-2 flex items-center gap-3">
+                  {(
+                    [
+                      ["backNudgeX", "X"],
+                      ["backNudgeY", "Y"],
+                    ] as const
+                  ).map(([key, label]) => (
+                    <label key={key} className="flex items-center gap-1.5 text-[11px] text-zinc-600">
+                      {label}
+                      <input
+                        type="number"
+                        step={0.1}
+                        min={-5}
+                        max={5}
+                        value={settings[key]}
+                        onChange={(e) =>
+                          update(key, Math.max(-5, Math.min(5, Number(e.target.value) || 0)))
+                        }
+                        className="h-7 w-16 rounded-md border border-zinc-300 px-1.5 text-right text-[11px] tabular-nums"
+                      />
+                      mm
+                    </label>
+                  ))}
+                  {(settings.backNudgeX !== 0 || settings.backNudgeY !== 0) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        update("backNudgeX", 0);
+                        update("backNudgeY", 0);
+                      }}
+                      className="ml-auto text-[11px] font-medium text-brand-600 hover:underline"
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
+              </div>
+            </>
           )}
         </div>
         <Toggle
